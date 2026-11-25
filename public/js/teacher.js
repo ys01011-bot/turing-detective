@@ -204,18 +204,18 @@
             <select class="cfg-set">${setsList.map((s) => `<option value="${s.id}" ${s.id === setId ? 'selected' : ''}>${esc(s.title)}</option>`).join('')}</select>
             <label>AI 난이도</label>
             <select class="cfg-lv">${['Lv1', 'Lv2', 'Lv3'].map((x) => `<option ${x === lv ? 'selected' : ''}>${x}</option>`).join('')}</select>
-            <details ${c.custom && c.custom.some((x) => x.question) ? 'open' : ''}><summary class="title">바퀴 질문 직접 입력 (선택)</summary>
-              ${[0, 1, 2]
-                .map((r) => {
-                  const cu = (c.custom && c.custom[r]) || {};
-                  const base = (setsList.find((s) => s.id === setId) || setsList[0]).rounds;
-                  const b = base[Math.min(r, base.length - 1)];
-                  return `<div class="row" style="margin-top:8px"><input class="grow cfg-q" data-r="${r}" type="text" maxlength="80" placeholder="${r + 1}바퀴: ${esc(b.question)}" value="${esc(cu.question || '')}" />
-                    <select class="cfg-clue" data-r="${r}" style="width:auto">${CLUES.map(([k, t]) => `<option value="${k}" ${(cu.clue || b.clue) === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`;
-                })
-                .join('')}
-              <p class="muted small">비워 두면 주제 세트의 질문을 써요. 직접 입력하면 고른 단서 유형의 기본 지시·백업을 써요.</p>
-            </details>
+            ${(() => {
+              const set = setsList.find((s) => s.id === setId) || setsList[0];
+              const cu = (c.custom && c.custom.find((x) => x && x.question)) || {};
+              const clues = set.rounds.map((r, i) => `${i + 1}바퀴 ${(CLUES.find(([k]) => k === r.clue) || ['', r.clue])[1]}`).join(' · ');
+              return `<label>이 판의 질문 <span class="muted small">(바퀴마다 같은 질문을 이어서 이야기해요)</span></label>
+                <div class="small"><b>${esc(set.question || '')}</b></div>
+                <div class="muted small">AI 단서: ${esc(clues)}</div>
+                <details ${cu.question ? 'open' : ''}><summary class="title">질문 직접 입력 (선택)</summary>
+                  <input class="grow cfg-q" type="text" maxlength="80" style="margin-top:8px" placeholder="${esc(set.question || '')}" value="${esc(cu.question || '')}" />
+                  <p class="muted small">비워 두면 주제 세트의 질문을 써요. 직접 입력해도 AI 단서·백업 메시지는 이 주제 세트의 것을 써요.</p>
+                </details>`;
+            })()}
           </div>`;
         })
         .join('');
@@ -229,7 +229,7 @@
       fetch('/content/sets')
         .then((r) => r.json())
         .then(paint)
-        .catch(() => paint([{ id: 'care', title: '배려', rounds: [{ question: '', clue: 'experience' }] }, { id: 'empathy', title: '공감', rounds: [{ question: '', clue: 'emotion' }] }]));
+        .catch(() => paint([{ id: 'care', title: '배려', question: '', rounds: [{ clue: 'experience' }] }, { id: 'empathy', title: '공감', question: '', rounds: [{ clue: 'emotion' }] }]));
     $('saveRoom').onclick = saveRoom;
     if ($('cancelEdit')) $('cancelEdit').onclick = () => {
       showForm = false;
@@ -254,8 +254,9 @@
       levels: [...document.querySelectorAll('.cfg-lv')].map((s) => s.value),
     };
     const gameCfg = [...document.querySelectorAll('#gameCfg [data-game]')].map((card) => {
-      const custom = [...card.querySelectorAll('.cfg-q')].map((q) => ({ question: q.value.trim(), clue: card.querySelector(`.cfg-clue[data-r="${q.dataset.r}"]`).value }));
-      return { setId: card.querySelector('.cfg-set').value, custom: custom.some((c) => c.question) ? custom : null };
+      const q = card.querySelector('.cfg-q');
+      const question = q ? q.value.trim() : '';
+      return { setId: card.querySelector('.cfg-set').value, custom: question ? [{ question }] : null };
     });
     if (R) {
       const r = await act('update-settings', { settings, gameCfg }, '설정을 저장했어요.');

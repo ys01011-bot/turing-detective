@@ -222,6 +222,7 @@ function studentState(room, p) {
       round: g.round,
       paused: g.paused,
       question: ri ? ri.question : null,
+      guide: ri ? ri.guide : '',
       remainingMs: remainingMs(g),
       members: g.playerIds.map((id) => {
         const m = room.players.get(id);
@@ -268,7 +269,7 @@ function studentResult(room, g, r, p) {
 /** 교사 화면 전체 상태 (마피아 포함) */
 function teacherState(room) {
   const Q = content.classQuestions();
-  const sets = content.topicSets().sets.map((s) => ({ id: s.id, title: s.title, rounds: s.rounds.map((r) => ({ question: r.question, clue: r.clue })) }));
+  const sets = content.topicSets().sets.map((s) => ({ id: s.id, title: s.title, question: s.question, rounds: s.rounds.map((r) => ({ clue: r.clue })) }));
   const players = [...room.players.values()];
   const pollCount = (key) => {
     const c = Q.poll.options.map(() => 0);

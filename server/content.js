@@ -34,29 +34,16 @@ function getSet(id) {
   return all.find((s) => s.id === id) || all[0];
 }
 
-// 같은 clue 유형의 기본값(직접 입력 질문용)
-function defaultRoundForClue(clue) {
-  for (const s of topicSets().sets) {
-    const r = s.rounds.find((x) => x.clue === clue);
-    if (r) return r;
-  }
-  return topicSets().sets[0].rounds[0];
-}
-
 /**
- * 판(game)·바퀴(round)에 해당하는 바퀴 정보.
- * gameCfg = { setId, custom: [{question, clue}] | null }
+ * 판(game)·바퀴(round)에 해당하는 바퀴 정보. 한 판은 질문 하나로 진행하고
+ * 바퀴마다 같은 질문을 이어서 이야기한다(바퀴별로 다른 것은 AI 단서·지시·예시·백업·안내).
+ * gameCfg = { setId, custom: [{question}] | null }  ← 교사가 직접 입력한 이 판의 질문
  */
 function getRound(gameCfg, round) {
   const set = getSet(gameCfg.setId);
   const base = set.rounds[Math.min(round - 1, set.rounds.length - 1)];
-  const custom = gameCfg.custom && gameCfg.custom[round - 1];
-  if (custom && custom.question) {
-    const clue = custom.clue || base.clue;
-    const d = clue === base.clue ? base : defaultRoundForClue(clue);
-    return { ...d, question: custom.question, clue };
-  }
-  return base;
+  const customQ = gameCfg.custom && (gameCfg.custom.find((c) => c && c.question) || {}).question;
+  return { ...base, question: customQ || set.question || base.question, guide: round >= 2 ? base.guide || '' : '' };
 }
 
 module.exports = { topicSets, spelling, banned, prompts, classQuestions, getSet, getRound };

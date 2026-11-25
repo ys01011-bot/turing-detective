@@ -143,7 +143,7 @@ function summary(st, seen) {
   L.push(`[상태] ${g.game}판 ${g.round}바퀴 / ${g.state}${g.paused ? ' (일시정지)' : ''} / 남은 시간 ${Math.max(0, Math.round((g.remainingMs || 0) / 1000))}초`);
   L.push(`[모둠원] ${g.members.map((m) => m.nick + (m.connected ? '' : '(끊김)')).join(', ')}`);
   if (g.greetings.length) L.push('[입장 인사]\n' + g.greetings.map((x) => `  ${x.nick}: ${x.text}`).join('\n'));
-  if (g.question) L.push(`[이번 바퀴 질문] ${g.question}`);
+  if (g.question) L.push(`[이번 판 질문] ${g.question}${g.guide ? ' — ' + g.guide : ''}`);
   if (g.messages.length) L.push('[이번 판 대화]\n' + g.messages.map((m) => `  (${m.round}바퀴) ${m.nick}: ${m.pass ? '(패스)' : m.text}`).join('\n'));
   if (g.turn) L.push(`[차례] ${g.turn.nick} (${g.turn.idx + 1}/${g.turn.of})`);
   if (g.result) {

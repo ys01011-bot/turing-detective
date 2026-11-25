@@ -269,6 +269,8 @@
     $('chatRound').textContent = `${g.game}판 · ${g.round}바퀴`;
     $('chatTurnNo').textContent = g.turn ? `${g.turn.idx + 1} / ${g.turn.of} 번째 차례` : '';
     $('chatQuestion').textContent = g.question || '';
+    $('chatGuide').textContent = g.guide || '';
+    $('chatGuide').classList.toggle('hidden', !g.guide);
     $('noticeText').textContent = S.room.notice;
     renderMessages($('chatList'), g.messages);
 

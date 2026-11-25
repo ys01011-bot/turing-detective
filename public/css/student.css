@@ -85,3 +85,14 @@
   .question { font-size: 1.2rem; }
   .flip { width: 260px; height: 300px; }
 }
+
+/* 2바퀴 안내: 같은 질문으로 이어서 */
+.round-guide {
+  margin-top: 6px;
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--lemon, #fff4c2);
+  color: var(--ink, #3b3a5a);
+  font-size: 0.9rem;
+}
