@@ -39,6 +39,11 @@ app.get('/api/room/:code', (req, res) => {
   });
 });
 
+// 주제 세트 목록 (교사 T1 방 만들기용, 질문만)
+app.get('/content/sets', (req, res) => {
+  res.json(require('./content').topicSets().sets.map((s) => ({ id: s.id, title: s.title, rounds: s.rounds.map((r) => ({ question: r.question, clue: r.clue })) })));
+});
+
 // 방 코드 QR (SVG)
 app.get('/api/qr', async (req, res) => {
   try {

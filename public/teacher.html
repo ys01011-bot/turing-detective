@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>튜링 탐정단 교사</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/teacher.css" />
+</head>
+<body>
+  <!-- T0 로그인 -->
+  <section id="login" class="login">
+    <div class="card center stack">
+      <div class="mascot" id="loginMascot"></div>
+      <h1>튜링 탐정단 · 선생님</h1>
+      <input id="pinInput" type="password" inputmode="numeric" placeholder="교사 PIN" autocomplete="off" />
+      <button id="pinBtn" class="btn big block" type="button">들어가기</button>
+    </div>
+  </section>
+
+  <div id="main" class="hidden">
+    <header class="t-head">
+      <div class="brand"><span class="mascot" id="headMascot"></span><span class="title">튜링 탐정단</span></div>
+      <nav id="tabs" class="tabs">
+        <button data-tab="t1">① 방 만들기</button>
+        <button data-tab="t2">② 접속 현황</button>
+        <button data-tab="t3">③ 진행</button>
+        <button data-tab="t4">④ 점수판</button>
+        <button data-tab="t5">⑤ 근거 보드</button>
+        <button data-tab="t6">⑥ 정리</button>
+        <button data-tab="t7">⑦ 수업 종료</button>
+      </nav>
+      <div class="head-code" id="headCode"></div>
+    </header>
+    <div id="alertBar" class="alert-bar"></div>
+    <main class="t-main">
+      <section id="t1" class="tab"></section>
+      <section id="t2" class="tab hidden"></section>
+      <section id="t3" class="tab hidden"></section>
+      <section id="t4" class="tab hidden"></section>
+      <section id="t5" class="tab hidden"></section>
+      <section id="t6" class="tab hidden"></section>
+      <section id="t7" class="tab hidden"></section>
+    </main>
+  </div>
+  <div id="modal" class="modal-bg hidden"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/teacher.js"></script>
+</body>
+</html>

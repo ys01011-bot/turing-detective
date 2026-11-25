@@ -25,12 +25,26 @@ function findBanned(text) {
   return hits;
 }
 
+// 받침 번호: 0=없음, 4=ㄴ, 8=ㄹ
+const jong = (ch) => {
+  const c = ch.charCodeAt(0) - 0xac00;
+  return c >= 0 && c < 11172 ? c % 28 : -1;
+};
+
+// 의존 명사 띄어쓰기: '할수있어'→'할 수 있어', '그런거같아'→'그런 거 같아' (관형형 ㄴ/ㄹ 받침 뒤만)
+function boundNounSpacing(t) {
+  return t
+    .replace(/([가-힣])(수|줄)\s?(있|없|알|몰)/g, (m, a, b, c) => (jong(a) === 8 ? `${a} ${b} ${c}` : m))
+    .replace(/([가-힣])(거|것)\s?(같)/g, (m, a, b, c) => (jong(a) === 4 || jong(a) === 8 ? `${a} ${b} ${c}` : m));
+}
+
 function ruleCorrect(text) {
   const s = content.spelling();
   let t = text;
   for (const [wrong, right] of [...s.rules, ...(s.spacing || [])]) {
     if (wrong && t.includes(wrong)) t = t.split(wrong).join(right);
   }
+  t = boundNounSpacing(t);
   return t.replace(/\s{2,}/g, ' ').trim();
 }
 
