@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>튜링 탐정단</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/student.css" />
+</head>
+<body>
+  <button id="soundBtn" class="btn soft small sound-btn" type="button" aria-label="소리 켜기/끄기">🔔 소리 켬</button>
+  <main id="app">
+    <!-- S1 입장 -->
+    <section id="s-join" class="screen">
+      <div class="hero">
+        <div class="mascot" id="joinMascot"></div>
+        <div>
+          <h1>튜링 탐정단</h1>
+          <p class="muted">우리 모둠 속 숨은 AI를 찾아라!</p>
+        </div>
+      </div>
+      <div class="card stack join-card">
+        <div id="resumeBox" class="hidden card mint">
+          <p><b id="resumeNick"></b>(으)로 들어와 있었어요.</p>
+          <button id="resumeBtn" class="btn mint block" type="button">이전 자리로 돌아가기</button>
+        </div>
+        <div id="step1" class="stack">
+          <label for="codeInput">방 코드 (숫자 6자리)</label>
+          <input id="codeInput" type="text" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="예) 123456" />
+          <button id="codeBtn" class="btn block" type="button">확인</button>
+        </div>
+        <div id="step2" class="stack hidden">
+          <label for="nickInput">별명 (2~8자)</label>
+          <input id="nickInput" type="text" maxlength="8" autocomplete="off" placeholder="예) 반짝별" />
+          <p class="muted small">⚠️ 진짜 이름 대신 별명을 써 주세요.</p>
+          <label>모둠 고르기</label>
+          <div id="groupPick" class="group-pick"></div>
+          <button id="joinBtn" class="btn mint block big" type="button">입장하기</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- S2 대기실 -->
+    <section id="s-lobby" class="screen hidden">
+      <div class="topbar">
+        <span class="pill" id="lobbyGroup"></span>
+        <span class="pill gray">방 <b id="lobbyCode"></b></span>
+        <span class="grow"></span>
+        <span class="pill mint" id="lobbyMe"></span>
+      </div>
+      <div class="lobby-grid">
+        <div class="card sky stack">
+          <div class="row">
+            <div class="mascot" id="lobbyMascot"></div>
+            <div class="speech grow">선생님이 게임을 시작할 때까지<br />인사를 나누며 기다려요!</div>
+          </div>
+          <h3>우리 모둠 친구들</h3>
+          <div id="memberList" class="member-list"></div>
+        </div>
+        <div class="card stack">
+          <h3 id="greetLabel">오늘 기분을 한 줄로!</h3>
+          <div id="greetList" class="chat-list short"></div>
+          <div class="row">
+            <input id="greetInput" class="grow" type="text" maxlength="80" autocomplete="off" placeholder="예) 오늘 급식 맛있어서 기분 좋음" />
+            <button id="greetBtn" class="btn mint" type="button">올리기</button>
+          </div>
+        </div>
+        <div class="card lilac stack">
+          <h3>🤔 <span id="pollQ"></span></h3>
+          <div id="prePoll" class="poll-btns"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- S3 역할 확인 -->
+    <section id="s-role" class="screen hidden">
+      <div class="center stack">
+        <h1><span id="roleGame"></span>판 — 내 역할은?</h1>
+        <p class="muted">카드를 누르면 3초 동안 보여요. 옆 친구가 보지 않게 조심!</p>
+        <div class="flip-wrap">
+          <button id="roleCard" class="flip" type="button" aria-label="눌러서 내 역할 보기">
+            <div class="flip-inner">
+              <div class="flip-front">
+                <div id="roleFrontArt"></div>
+                <div class="title">눌러서 내 역할 보기</div>
+              </div>
+              <div class="flip-back">
+                <div id="roleArt"></div>
+                <div id="roleText" class="title"></div>
+              </div>
+            </div>
+          </button>
+        </div>
+        <button id="ackBtn" class="btn mint big" type="button">확인했어요</button>
+        <p id="ackWait" class="muted hidden">친구들이 확인할 때까지 기다려요…</p>
+      </div>
+    </section>
+
+    <!-- S4 채팅 -->
+    <section id="s-chat" class="screen hidden">
+      <div class="chat-head card">
+        <div class="row">
+          <span class="pill lilac" id="chatRound"></span>
+          <span class="pill gray" id="chatTurnNo"></span>
+          <span class="grow"></span>
+          <span class="pill lemon notice">🤖 <span id="noticeText"></span></span>
+        </div>
+        <div class="row q-row">
+          <div class="grow">
+            <div class="muted small">이번 바퀴 질문</div>
+            <div class="question" id="chatQuestion"></div>
+          </div>
+          <div class="timer" id="chatTimer"></div>
+        </div>
+      </div>
+      <div id="chatList" class="chat-list card"></div>
+      <div id="typingLine" class="typing-line">&nbsp;</div>
+      <div id="inputBox" class="input-box card">
+        <div class="turn-label" id="turnLabel"></div>
+        <div class="row">
+          <input id="msgInput" class="grow" type="text" autocomplete="off" spellcheck="false" />
+          <button id="sendBtn" class="btn mint" type="button">전송</button>
+        </div>
+        <div class="row small muted"><span id="charCount"></span><span class="grow"></span><span id="inputHint"></span></div>
+      </div>
+      <div id="pausedBanner" class="paused hidden">⏸ 선생님이 잠깐 멈췄어요</div>
+    </section>
+
+    <!-- S5 투표 -->
+    <section id="s-vote" class="screen hidden">
+      <div class="card stack">
+        <div class="row">
+          <h2 class="grow">🔍 누가 AI일까? 한 명을 골라요</h2>
+          <div class="timer" id="voteTimer"></div>
+        </div>
+        <div id="voteForm" class="stack">
+          <div id="voteCards" class="vote-cards"></div>
+          <label for="reasonInput">왜 그렇게 생각했나요? (5자 이상)</label>
+          <textarea id="reasonInput" maxlength="200" placeholder="예) 경험을 말하는데 언제, 어디서인지가 없었어"></textarea>
+          <button id="voteBtn" class="btn lilac big block" type="button">투표하기</button>
+        </div>
+        <div id="voteWait" class="center hidden stack">
+          <div class="mascot" id="voteMascot"></div>
+          <h3>다른 친구들을 기다리는 중…</h3>
+          <p class="muted" id="voteProgress"></p>
+        </div>
+      </div>
+      <details class="card review">
+        <summary class="title">대화 다시 보기</summary>
+        <div id="voteReview" class="chat-list"></div>
+      </details>
+    </section>
+
+    <!-- S6 결과 -->
+    <section id="s-result" class="screen hidden">
+      <div class="card center stack reveal" id="revealCard">
+        <div class="muted title">이번 판의 AI 마피아는…</div>
+        <div id="revealArt"></div>
+        <h1 id="revealNick"></h1>
+        <div id="revealVerdict" class="title verdict"></div>
+      </div>
+      <div class="result-grid">
+        <div class="card apricot stack">
+          <h3>🎯 내 점수</h3>
+          <div class="score-big"><span id="myDelta"></span></div>
+          <p class="muted">누적 <b id="myScore"></b>점</p>
+          <div id="lookalike"></div>
+        </div>
+        <div class="card stack">
+          <h3>🗳 득표 결과</h3>
+          <div id="tally" class="tally"></div>
+        </div>
+        <div class="card lilac stack wide">
+          <h3>🤖 이번 판 AI가 쓴 메시지</h3>
+          <div id="aiMsgs" class="chat-list"></div>
+        </div>
+        <div class="card stack wide">
+          <h3>💬 친구들의 근거</h3>
+          <div id="voteReasons" class="reasons"></div>
+        </div>
+        <div class="card mint stack wide">
+          <h3>🏆 우리 모둠 점수</h3>
+          <div id="groupScores" class="scores"></div>
+          <p class="muted center" id="nextHint"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- S7 정리 -->
+    <section id="s-closing" class="screen hidden">
+      <div class="hero">
+        <div class="mascot" id="closeMascot"></div>
+        <div>
+          <h1>오늘의 탐정 활동 끝!</h1>
+          <p class="muted">마지막으로 생각을 정리해 봐요.</p>
+        </div>
+      </div>
+      <div class="card lilac stack">
+        <h3>🤔 <span id="pollQ2"></span></h3>
+        <div id="postPoll" class="poll-btns"></div>
+      </div>
+      <div class="card mint stack">
+        <h3>🤝 AI 친구 약속</h3>
+        <p id="pledgePrompt"></p>
+        <p class="muted small" id="pledgeExample"></p>
+        <div class="row">
+          <input id="pledgeInput" class="grow" type="text" maxlength="100" autocomplete="off" />
+          <button id="pledgeBtn" class="btn mint" type="button">약속하기</button>
+        </div>
+        <p id="pledgeDone" class="hidden">✅ 약속을 올렸어요: <b id="pledgeText"></b></p>
+      </div>
+      <p class="center muted">내 점수: <b id="finalScore"></b>점</p>
+    </section>
+
+    <!-- 안내(퇴장·방 종료·연결 끊김) -->
+    <section id="s-msg" class="screen hidden center">
+      <div class="mascot" id="msgMascot"></div>
+      <h2 id="msgText"></h2>
+      <button class="btn" type="button" onclick="location.href='/'">처음으로</button>
+    </section>
+  </main>
+  <div id="connBanner" class="conn hidden">연결을 다시 잇는 중이에요…</div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/student.js"></script>
+</body>
+</html>

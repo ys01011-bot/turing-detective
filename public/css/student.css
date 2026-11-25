@@ -1,0 +1,86 @@
+/* 학생 화면 (크롬북 1366px 기준, 폰에서도 안 깨지게) */
+#app { max-width: 1100px; margin: 0 auto; padding: 18px 16px 40px; }
+.screen { animation: pop 0.35s ease-out; }
+.hero { display: flex; align-items: center; gap: 18px; justify-content: center; margin: 10px 0 18px; }
+.join-card { max-width: 520px; margin: 0 auto; }
+.group-pick { display: flex; gap: 10px; flex-wrap: wrap; }
+.group-pick button { flex: 1 1 110px; }
+.group-pick button.sel { background: var(--mint-d); color: #fff; border-color: var(--mint-d); box-shadow: 0 4px 0 #2b8a6b; }
+
+.topbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.lobby-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; }
+.lobby-grid > :last-child { grid-column: 1 / -1; }
+.member-list { display: flex; flex-direction: column; gap: 8px; }
+.member { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: var(--r-md); padding: 8px 12px; }
+.member .grow { font-family: var(--f-title); }
+.member.off { opacity: 0.5; }
+.poll-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.poll-btns .btn { flex: 1 1 150px; }
+.poll-btns .btn.sel { background: var(--lilac-d); color: #fff; border-color: var(--lilac-d); box-shadow: 0 4px 0 #5a45b0; }
+
+.chat-list { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.chat-list.short { max-height: 260px; min-height: 80px; }
+#chatList { height: calc(100vh - 380px); min-height: 260px; padding: 18px; }
+.empty-chat { color: var(--ink-soft); text-align: center; margin: auto; }
+
+.chat-head { padding: 14px 20px; margin-bottom: 12px; }
+.q-row { margin-top: 8px; flex-wrap: nowrap; }
+.question { font-family: var(--f-title); font-size: 1.5rem; color: #4b3a99; }
+.notice { font-size: 0.85rem; }
+.typing-line { min-height: 30px; padding: 4px 14px; color: var(--ink-soft); font-family: var(--f-title); }
+.input-box { padding: 14px 18px; transition: box-shadow 0.25s, border-color 0.25s, background 0.25s; }
+.input-box.myturn { border-color: var(--mint-d); background: #f3fffa; box-shadow: 0 0 0 6px rgba(63, 174, 138, 0.18), var(--shadow); animation: boing 0.4s ease-in-out 2; }
+.turn-label { font-family: var(--f-title); margin-bottom: 8px; color: var(--ink-soft); }
+.input-box.myturn .turn-label { color: var(--mint-d); font-size: 1.15rem; }
+.paused { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); background: var(--apricot); color: #8a4a17; font-family: var(--f-title); border-radius: 999px; padding: 10px 24px; box-shadow: var(--shadow); z-index: 60; }
+
+/* 역할 카드 뒤집기 */
+.flip-wrap { perspective: 1000px; display: flex; justify-content: center; margin: 10px 0; }
+.flip { width: 320px; height: 360px; border: none; background: none; padding: 0; cursor: pointer; font: inherit; color: inherit; }
+.flip-inner { position: relative; width: 100%; height: 100%; transition: transform 0.55s cubic-bezier(0.3, 1.4, 0.6, 1); transform-style: preserve-3d; }
+.flip.open .flip-inner { transform: rotateY(180deg); }
+.flip-front, .flip-back { position: absolute; inset: 0; backface-visibility: hidden; border-radius: var(--r-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 20px; box-shadow: var(--shadow); border: 4px solid #fff; }
+.flip-front { background: repeating-linear-gradient(45deg, #e3d9ff, #e3d9ff 14px, #ecE5ff 14px, #ece5ff 28px); font-size: 1.3rem; }
+.flip-back { background: #fff; transform: rotateY(180deg); font-size: 1.1rem; }
+.flip-back.mafia { background: #f6f2ff; }
+.flip-back.human { background: #effcf6; }
+
+/* 투표 */
+.vote-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.vote-card { border: 3px solid var(--line); background: #fff; border-radius: var(--r-md); padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; font-family: var(--f-title); font-size: 1.1rem; transition: transform 0.15s; color: var(--ink); }
+.vote-card:hover { transform: translateY(-2px); }
+.vote-card.sel { border-color: var(--lilac-d); background: #f6f2ff; box-shadow: 0 0 0 5px rgba(123, 98, 217, 0.18); }
+.vote-card.sel::after { content: '✔ 선택'; font-size: 0.9rem; color: var(--lilac-d); }
+.review { margin-top: 14px; }
+.review summary { cursor: pointer; }
+#voteReview { max-height: 320px; margin-top: 12px; }
+
+/* 결과 */
+.reveal { margin-bottom: 16px; }
+.verdict { font-size: 1.4rem; }
+.verdict.ok { color: var(--mint-d); }
+.verdict.no { color: var(--apricot-d); }
+.result-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; }
+.result-grid .wide { grid-column: 1 / -1; }
+.score-big { font-family: var(--f-title); font-size: 3rem; color: var(--apricot-d); }
+.tally-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+.tally-row .name { width: 110px; font-family: var(--f-title); }
+.tally-bar { height: 22px; border-radius: 999px; background: var(--sky); min-width: 8px; transition: width 0.6s; }
+.tally-bar.mafia { background: var(--lilac-d); }
+.reasons { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.reason { background: #fff; border: 2px solid var(--line); border-radius: var(--r-md); padding: 10px 14px; }
+.reason.hit { border-color: var(--mint-d); }
+.scores { display: flex; flex-direction: column; gap: 6px; }
+.score-row { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: var(--r-md); padding: 6px 12px; }
+.score-row .rank { font-family: var(--f-title); width: 28px; text-align: center; }
+.score-row b { font-family: var(--f-title); }
+.badge { display: inline-flex; align-items: center; gap: 6px; background: var(--lemon); border-radius: 999px; padding: 6px 14px; font-family: var(--f-title); }
+
+.conn { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--coral); color: #8f2c23; border-radius: 999px; padding: 8px 20px; font-family: var(--f-title); z-index: 70; }
+
+@media (max-width: 760px) {
+  .lobby-grid, .result-grid { grid-template-columns: 1fr; }
+  #chatList { height: calc(100vh - 420px); }
+  .question { font-size: 1.2rem; }
+  .flip { width: 260px; height: 300px; }
+}
