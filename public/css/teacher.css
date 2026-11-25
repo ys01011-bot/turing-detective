@@ -108,3 +108,9 @@ body { font-size: 19px; }
   .two, .code-show { grid-template-columns: 1fr; }
   .big-code { font-size: 4rem; }
 }
+
+/* 서버가 쓰는 AI 표시 */
+.brand { white-space: nowrap; }
+#aiBadge { margin-left: 8px; white-space: nowrap; font-size: 0.75rem; }
+#aiBadge:empty { display: none; }
+@media (max-width: 480px) { #aiBadge { display: none; } }

@@ -60,6 +60,7 @@
     }
     authed = true;
     defaults = r.defaults;
+    $('aiBadge').textContent = 'AI: ' + (r.provider === 'mock' ? '가짜(시험용)' : r.provider);
     ss.set('td-pin', pin);
     $('login').classList.add('hidden');
     $('main').classList.remove('hidden');
