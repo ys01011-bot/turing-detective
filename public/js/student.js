@@ -92,7 +92,7 @@
     }
   }
   $('codeBtn').onclick = checkCode;
-  $('codeInput').onkeydown = (e) => e.key === 'Enter' && checkCode();
+  $('codeInput').onkeydown = (e) => { if (e.key === 'Enter') checkCode(); };
 
   function join() {
     const nick = $('nickInput').value.trim();
@@ -106,7 +106,7 @@
     });
   }
   $('joinBtn').onclick = join;
-  $('nickInput').onkeydown = (e) => e.key === 'Enter' && join();
+  $('nickInput').onkeydown = (e) => { if (e.key === 'Enter' && !e.isComposing) join(); };
 
   function resume(sess, fromButton) {
     socket.emit('resume', sess, (r) => {
@@ -223,7 +223,7 @@
     });
   }
   $('greetBtn').onclick = sendGreeting;
-  $('greetInput').onkeydown = (e) => e.key === 'Enter' && !e.isComposing && sendGreeting();
+  $('greetInput').onkeydown = (e) => { if (e.key === 'Enter' && !e.isComposing) sendGreeting(); };
 
   // ── S3 역할 확인 ──────────────────────────────
   $('roleFrontArt').innerHTML = TD.turingi('think', 120);
@@ -535,7 +535,7 @@
     });
   }
   $('pledgeBtn').onclick = sendPledge;
-  $('pledgeInput').onkeydown = (e) => e.key === 'Enter' && !e.isComposing && sendPledge();
+  $('pledgeInput').onkeydown = (e) => { if (e.key === 'Enter' && !e.isComposing) sendPledge(); };
 
   // ── 타이머 ────────────────────────────────────
   setInterval(() => {

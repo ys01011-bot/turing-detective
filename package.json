@@ -9,7 +9,9 @@
     "dev": "node --watch server/index.js",
     "sim": "node scripts/sim.js",
     "test": "node scripts/test-pipeline.js",
-    "test:controls": "node scripts/test-controls.js"
+    "test:controls": "node scripts/test-controls.js",
+    "ai:check": "node scripts/ai-check.js",
+    "test:small": "node scripts/test-small-groups.js"
   },
   "engines": {
     "node": ">=20"

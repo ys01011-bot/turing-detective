@@ -305,10 +305,20 @@ io.on('connection', (socket) => {
     'start-game',
     T(
       needRoom((room, data) => {
+        // 전체 시작: 인원이 몇 명이든 3명 이상인 모둠은 모두 시작한다.
+        // 빈 모둠·진행 중 모둠은 조용히 건너뛰고, 1~2명 모둠은 안내만 한다(실패로 치지 않음).
+        const all = data.groupIdx === 'all' || data.groupIdx === undefined;
         const msgs = [];
+        let started = 0;
         for (const g of groupsOf(room, data)) {
+          if (all && (g.playerIds.length === 0 || !['LOBBY', 'RESULT'].includes(g.state) || g.game >= room.settings.games)) continue;
           const r = G.startGame(room, g);
-          if (!r.ok) msgs.push(r.msg);
+          if (r.ok) started++;
+          else msgs.push(r.msg);
+        }
+        if (all) {
+          if (!started) return { ok: false, msg: msgs.join('\n') || '시작할 수 있는 모둠이 없어요. (모둠마다 3명 이상 필요)' };
+          return { ok: true, msg: msgs.length ? `${started}개 모둠을 시작했어요.\n${msgs.join('\n')}` : '' };
         }
         return { ok: msgs.length === 0, msg: msgs.join('\n') };
       })

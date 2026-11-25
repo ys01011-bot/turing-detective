@@ -72,7 +72,7 @@
     setTab(R ? 't2' : 't1');
   }
   $('pinBtn').onclick = () => login($('pinInput').value.trim());
-  $('pinInput').onkeydown = (e) => e.key === 'Enter' && login($('pinInput').value.trim());
+  $('pinInput').onkeydown = (e) => { if (e.key === 'Enter') login($('pinInput').value.trim()); };
   socket.on('connect', () => {
     const pin = ss.get('td-pin');
     if (pin) login(pin, true);
@@ -172,7 +172,7 @@
         <h2>${R ? '설정 고치기' : '새 방 만들기'}</h2>
         <div class="form-grid">
           ${R ? '' : `<div><label for="fGroups">모둠 수</label><select id="fGroups">${[1, 2, 3, 4].map((n) => `<option ${n === 3 ? 'selected' : ''}>${n}</option>`).join('')}</select></div>`}
-          ${numField('fSize', '모둠 인원 (4~7)', S.groupSize ?? 6, 4, 7)}
+          ${numField('fSize', '모둠 권장 인원 (3~7, 적어도 시작 가능)', S.groupSize ?? 6, 3, 7)}
           ${numField('fGames', '판 수 (1~3)', S.games ?? 2, 1, 3)}
           ${numField('fRounds', '한 판의 바퀴 수 (1~3)', S.rounds ?? 2, 1, 3)}
           ${numField('fTurn', '턴 제한 시간 (20~60초)', S.turnSec ?? 30, 20, 60)}
@@ -285,7 +285,7 @@
           const on = g.members.filter((m) => m.connected).length;
           const greeted = g.members.filter((m) => m.greeting).length;
           return `<div class="card gcard ${['mint', 'sky', 'lilac', 'apricot'][g.idx]}">
-            <div class="g-title"><h2>${g.idx + 1}모둠</h2>${statePill(g)}<span class="grow"></span><span class="pill gray">접속 ${on}/${R.settings.groupSize}</span><span class="pill gray">인사 ${greeted}/${g.members.length}</span></div>
+            <div class="g-title"><h2>${g.idx + 1}모둠</h2>${statePill(g)}<span class="grow"></span><span class="pill gray">접속 ${on}명 (권장 ${R.settings.groupSize})</span><span class="pill gray">인사 ${greeted}/${g.members.length}</span></div>
             ${g.members.length ? '' : '<p class="muted">아직 아무도 없어요.</p>'}
             ${g.members
               .map(
@@ -309,7 +309,10 @@
     root.querySelectorAll('[data-start]').forEach((b) => (b.onclick = async () => {
       const groupIdx = b.dataset.start === 'all' ? 'all' : +b.dataset.start;
       const r = await act('start-game', { groupIdx });
-      if (r.ok) setTab('t3');
+      if (r.ok) {
+        if (r.msg) TD.toast(r.msg);
+        setTab('t3');
+      }
     }));
   }
 

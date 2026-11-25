@@ -1,5 +1,5 @@
 // AI 공급사 어댑터 선택. generate({ system, messages, maxTokens, purpose, mock }) → { text, latencyMs }
-// 1차 빌드는 mock 만 구현. gemini / deepseek / claude 는 D5에서 이 폴더에 추가한다.
+// mock · gemini · deepseek 구현. 키가 없거나 호출이 실패하면 백업 메시지로 넘어간다(mafia.js).
 const provider = (process.env.AI_PROVIDER || 'mock').toLowerCase();
 
 let impl;

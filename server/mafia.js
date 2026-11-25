@@ -139,7 +139,9 @@ function hasCommon(a, b, k) {
 function postCheck(text, profile, group, roundInfo) {
   const n = len(text);
   if (!n) return 'empty';
-  if (n < profile.target * 0.5 || n > profile.target * 1.6) return 'length';
+  // 길이 기준: 모둠 견본의 최소~최대 범위에 여유를 둔다(목표 길이 한 점이 아니라 범위로 판정).
+  const [lo, hi] = profile.range;
+  if (n < Math.max(4, Math.floor(lo * 0.6)) || n > Math.max(Math.ceil(hi * 1.4), lo + 12)) return 'length';
   if (AI_WORDS.test(text)) return 'ai-word';
   const prev = [...group.messages.filter((m) => !m.pass).map((m) => m.text), ...roundInfo.examples];
   for (const p of prev) if (hasCommon(text, p, 10)) return 'copy';

@@ -7,7 +7,7 @@ const rooms = new Map(); // code → Room
 const ROOM_TTL_MS = 3 * 60 * 60 * 1000;
 
 const DEFAULT_SETTINGS = {
-  groupSize: 6, // 4~7
+  groupSize: 6, // 권장 인원 3~7 (표시용, 시작은 3명 이상이면 가능)
   games: 2, // 1~3
   rounds: 2, // 1~3
   turnSec: 30, // 20~60
@@ -33,7 +33,7 @@ function sanitizeSettings(s = {}) {
   const levels = Array.isArray(s.levels) ? s.levels : d.levels;
   return {
     ...d,
-    groupSize: clamp(s.groupSize, 4, 7, d.groupSize),
+    groupSize: clamp(s.groupSize, 3, 7, d.groupSize),
     games: clamp(s.games, 1, 3, d.games),
     rounds: clamp(s.rounds, 1, 3, d.rounds),
     turnSec: clamp(s.turnSec, 20, 60, d.turnSec),
