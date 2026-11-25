@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
-    "sim": "node scripts/sim.js"
+    "sim": "node scripts/sim.js",
+    "test": "node scripts/test-pipeline.js",
+    "test:controls": "node scripts/test-controls.js"
   },
   "engines": {
     "node": ">=20"
