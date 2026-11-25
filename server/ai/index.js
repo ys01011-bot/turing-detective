@@ -16,7 +16,8 @@ class AITimeout extends Error {}
 // Gemini 무료 등급은 모델당 분당 15회. 맞춤법 보정(correct)은 '낮은 우선순위'라서
 // 예산의 일부만 쓰고, 나머지는 마피아 문장용으로 남겨 둔다. 한도 초과(429)를 받으면
 // 알려 준 시간 동안 보정은 AI를 건너뛰고 규칙 보정만 쓴다.
-const RPM = Number(process.env.AI_RPM) || (impl.name === 'gemini' ? 15 : 0); // 0 = 제한 없음
+// 개발 중(무료 키)에만 .env 에 AI_RPM=15 를 넣어 쓴다. 실제 수업(유료 결제)에서는 비워 두면 제한 없음.
+const RPM = Number(process.env.AI_RPM) || 0;
 const RESERVE = Number(process.env.AI_RPM_RESERVE) || 6; // 마피아·분류용으로 남겨 둘 몫
 const LOW = new Set(['correct']);
 const recent = []; // 최근 60초 호출 시각
