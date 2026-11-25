@@ -16,7 +16,7 @@ const DEFAULT_SETTINGS = {
   levels: ['Lv2', 'Lv3', 'Lv3'],
   questionChance: false, // 12장 선택 기능 — 자리만
   spellAI: true, // 맞춤법 AI 보정
-  postDelayMs: 1200, // 7.4 지연 통일
+  postDelayMs: 2000, // 7.4 지연 통일 (AI 보정 제한 1.9초보다 길게)
   roleRevealSec: 20,
   aiCallLimit: 300,
   absentPassSec: 30, // 30초 넘게 미접속이면 턴 자동 패스

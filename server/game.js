@@ -147,6 +147,7 @@ function startTurn(room, g) {
 async function requestAI(room, g, turn, opts = {}) {
   const mafia = room.players.get(g.mafiaId);
   const r = await generateMafiaMessage(room, g, mafia, opts);
+  console.log(`[마피아] ${g.idx + 1}모둠 ${r.source}${r.note ? "(" + r.note + ")" : ""} ${r.latencyMs}ms: ${r.text}`);
   if (g.turn !== turn || turn.sending) return;
   turn.aiText = r.text;
   turn.aiSource = r.source;

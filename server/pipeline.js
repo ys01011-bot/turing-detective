@@ -74,12 +74,13 @@ async function aiCorrect(room, text) {
         messages: [{ role: 'user', content: text }],
         maxTokens: 200,
       },
-      { timeoutMs: 1500, room }
+      { timeoutMs: 1900, room }
     );
     const out = clean(r.text, room.settings.maxLen);
     if (!out) return text;
     return out;
   } catch (e) {
+    console.log(`[보정] AI 보정 실패(${e.message.slice(0, 60)}) → 규칙 보정 결과 사용`);
     return text; // 실패하면 규칙 보정 결과로
   }
 }

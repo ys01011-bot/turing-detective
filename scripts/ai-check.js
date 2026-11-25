@@ -41,7 +41,7 @@ async function listGeminiModels() {
       system: P.correctSystem,
       messages: [{ role: 'user', content: '나는 몇일전에 친구가 도와줘서 할수있엇어 ㅋㅋ' }],
       maxTokens: 200,
-      timeoutMs: 1500,
+      timeoutMs: 1900,
     },
     {
       purpose: 'mafia',

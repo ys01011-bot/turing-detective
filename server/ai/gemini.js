@@ -3,9 +3,9 @@
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
 const DEFAULTS = {
-  mafia: 'gemini-flash-latest',
-  correct: 'gemini-flash-lite-latest',
-  classify: 'gemini-flash-latest',
+  mafia: 'gemini-3.5-flash-lite',
+  correct: 'gemini-3.5-flash-lite',
+  classify: 'gemini-3.5-flash-lite',
 };
 const modelFor = (purpose) =>
   (purpose === 'mafia' && process.env.MAFIA_MODEL) ||
@@ -24,6 +24,9 @@ function apiError(status, body) {
   const msg = (body && body.error && body.error.message) || `HTTP ${status}`;
   const e = new Error(`gemini ${status}: ${msg.slice(0, 200)}`);
   e.status = status;
+  // 429 응답의 RetryInfo("31s")를 밀리초로
+  const retry = ((body && body.error && body.error.details) || []).find((d) => d.retryDelay);
+  if (retry) e.retryAfterMs = Math.ceil(parseFloat(retry.retryDelay) * 1000) || undefined;
   return e;
 }
 
@@ -74,8 +77,8 @@ async function generate({ system, messages, maxTokens = 300, purpose = 'mafia' }
       }
       return { text, latencyMs: Date.now() - t0, model };
     } catch (e) {
-      // 생각 설정을 거절한 경우에만 다음 방식으로
-      const thinkRejected = e.status === 400 && /think/i.test(e.message);
+      // 거절 문구가 'invalid argument' 처럼 막연할 때도 있어서, 생각 설정을 넣은 400 이면 다음 방식으로
+      const thinkRejected = e.status === 400 && think !== null;
       if (thinkRejected && i < THINK_OPTIONS.length - 1) {
         i++;
         continue;

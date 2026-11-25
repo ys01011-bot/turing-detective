@@ -5,7 +5,7 @@ const ai = require('./ai');
 const LABELS = ['experience', 'emotion', 'responsibility', 'surface'];
 
 async function classifyRoom(room) {
-  const items = room.evidence.filter((e) => !e.label);
+  const items = room.evidence.filter((e) => !e.label || e.label === 'unclassified'); // 실패했던 것도 다시
   if (!items.length) return;
   items.forEach((e) => (e.label = 'pending'));
   try {
@@ -25,6 +25,7 @@ async function classifyRoom(room) {
       e.label = LABELS.includes(l) ? l : 'unclassified';
     }
   } catch (err) {
+    console.log(`[분류] AI 분류 실패(${String(err.message).slice(0, 60)}) → 교사 화면 '다시 분류'로 재시도 가능`);
     items.forEach((e) => (e.label = 'unclassified'));
   }
 }

@@ -1,5 +1,5 @@
 // 튜링 탐정단 서버 진입점: Express(정적 파일) + Socket.IO(실시간)
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const path = require('path');
 const os = require('os');
 const http = require('http');

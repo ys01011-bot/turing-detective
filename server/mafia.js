@@ -66,11 +66,15 @@ function computeProfile(room, group, mafia, level) {
     if (/^(나도|ㅇㅈ|맞아|ㄹㅇ|인정)/.test(m.text) || (prev && m.text.includes(prev.nick))) replies++;
   });
   const q = humanCount ? replies / humanCount : 0;
+  // ㅋㅋ와 ㅠㅠ가 한 문장에 같이 붙으면 어색하다 → 하나만
+  let useKK = Math.random() < pKK;
+  let useTT = Math.random() < pTT;
+  if (useKK && useTT) Math.random() < 0.5 ? (useKK = false) : (useTT = false);
   const prof = {
     target,
     range: [lo, hi],
-    useKK: Math.random() < pKK,
-    useTT: Math.random() < pTT,
+    useKK,
+    useTT,
     pQ,
     pEx,
     pDot,
@@ -142,6 +146,8 @@ function postCheck(text, profile, group, roundInfo) {
   // 길이 기준: 모둠 견본의 최소~최대 범위에 여유를 둔다(목표 길이 한 점이 아니라 범위로 판정).
   const [lo, hi] = profile.range;
   if (n < Math.max(4, Math.floor(lo * 0.6)) || n > Math.max(Math.ceil(hi * 1.4), lo + 12)) return 'length';
+  // 끝이 띄어 쓴 한 글자 어미로 깨진 문장(예: "들어 줄 어")
+  if (/\s[어아요야]$/.test(text.replace(/[\s.!?~ㅋㅎㅠㅜ]+$/, ''))) return 'broken';
   if (AI_WORDS.test(text)) return 'ai-word';
   const prev = [...group.messages.filter((m) => !m.pass).map((m) => m.text), ...roundInfo.examples];
   for (const p of prev) if (hasCommon(text, p, 10)) return 'copy';
