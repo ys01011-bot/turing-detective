@@ -31,7 +31,7 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 function makeBot(code, groupIdx, nick, opts = {}) {
   const s = io(URL, { transports: ['websocket'], forceNew: true });
-  const bot = { s, nick, st: null, id: null, sentTurn: null, voted: 0, acked: 0, polled: false, pledged: false, greeted: false };
+  const bot = { s, nick, st: null, id: null, sentTurn: null, voted: 0, acked: 0, polled: false, pledged: false, greeted: false, posted: false, selfChecked: false };
   s.on('connect', () => {
     if (bot.id) s.emit('resume', { code, playerId: bot.id });
     else
@@ -51,7 +51,10 @@ function makeBot(code, groupIdx, nick, opts = {}) {
       }
       if (!bot.polled) {
         bot.polled = true;
-        s.emit('poll', { which: 'pre', choice: Math.floor(Math.random() * 3) });
+        const choice = Math.floor(Math.random() * 3);
+        s.emit('poll', { which: 'pre', choice });
+        // 사전 이유는 선택: 절반만 쓴다
+        if (Math.random() < 0.5) s.emit('poll', { which: 'pre', choice, reason: '그냥 그럴 것 같아서' });
       }
     }
     if (g.state === 'ROLE_REVEAL' && bot.acked < g.game) {
@@ -93,10 +96,28 @@ function makeBot(code, groupIdx, nick, opts = {}) {
       const others = g.members.filter((m) => m.id !== st.me.id);
       s.emit('vote', { targetId: pick(others).id, reason: pick(REASONS) }, (r) => !r.ok && log('vote 실패', nick, r.msg));
     }
-    if (g.state === 'CLOSING' && !bot.pledged) {
+    // 정리 단계: ③ 사후 입장+이유(필수), ④ 원칙+검사, ⑤ 자기 점검
+    const step = st.room.closingStep || 0;
+    if (g.state === 'CLOSING' && step === 3 && !bot.posted) {
+      bot.posted = true;
+      const choice = Math.floor(Math.random() * 3);
+      const noReason = await s.emitWithAck('poll', { which: 'post', choice });
+      if (noReason.ok) log('사후 이유 필수 검사 실패', nick);
+      const r = await s.emitWithAck('poll', { which: 'post', choice, reason: pick(['내 말을 잘 받아 줘서 친구 같았어요', '진짜로 겪은 일이 없어서 친구는 아닌 것 같아요', '잘 모르겠지만 대화는 재밌었어요']) });
+      if (!r.ok) log('사후 입장 실패', nick, r.msg);
+    }
+    if (g.state === 'CLOSING' && step === 4 && !bot.pledged) {
       bot.pledged = true;
-      s.emit('poll', { which: 'post', choice: Math.floor(Math.random() * 3) });
-      s.emit('pledge', { text: 'AI 말도 한 번 더 확인할게' });
+      const r = await s.emitWithAck('pledge', { text: 'AI 말도 한 번 더 확인할게' });
+      if (!r.ok) log('원칙 실패', nick, r.msg);
+      await s.emitWithAck('pledge-checks', { checks: [true, Math.random() < 0.5, false] });
+      // 고쳐 쓰기(다시 올리기)
+      const r2 = await s.emitWithAck('pledge', { text: 'AI 말도 한 번 더 확인하고, 고민은 친구에게도 말할게', checks: [true, true, Math.random() < 0.5] });
+      if (!r2.ok) log('원칙 고쳐 쓰기 실패', nick, r2.msg);
+    }
+    if (g.state === 'CLOSING' && step === 5 && !bot.selfChecked) {
+      bot.selfChecked = true;
+      for (let q = 0; q < 3; q++) await s.emitWithAck('self-check', { q, v: Math.floor(Math.random() * 3) });
     }
   });
   return bot;
@@ -156,8 +177,26 @@ async function main() {
       log(`  ${g.idx + 1}모둠: 마피아=${res.mafiaNick} 검거=${res.caught} 득표=${res.tally.map((x) => x.nick + ':' + x.count).join(' ')} 메시지=${g.messages.filter((m) => m.game === game).length}개 AI=${res.aiMessageIds.length}개`);
     }
   }
+  const early = await t.emitWithAck('closing-step', { code, step: 4 });
+  log('정리 전 단계 넘기기 거절', !early.ok ? '통과' : '실패');
   await t.emitWithAck('closing', { code });
   await sleep(2000);
+  const nPlayers = room.groups.reduce((n, g) => n + g.members.length, 0);
+  log('정리 기본 단계 ③', room.closingStep === 3 ? '통과' : '실패 ' + room.closingStep);
+  const posted = (room.reasons || []).filter((x) => x.post !== null && x.postReason).length;
+  log('찬반 이유 보드', posted === nPlayers ? '통과' : '실패', `${posted}/${nPlayers}`, '바뀐 친구', (room.reasons || []).filter((x) => x.pre !== null && x.post !== null && x.pre !== x.post).length);
+  const bad = await t.emitWithAck('closing-step', { code, step: 9 });
+  log('잘못된 단계 거절', !bad.ok ? '통과' : '실패');
+  await t.emitWithAck('closing-step', { code, step: 4 });
+  await sleep(1500);
+  const checked = room.pledges.filter((p) => p.checks && p.checks[0]).length;
+  log('④ 원칙+검사', room.closingStep === 4 && room.pledges.length === nPlayers && checked === nPlayers ? '통과' : '실패', `${room.pledges.length}/${nPlayers}`);
+  await t.emitWithAck('closing-step', { code, step: 5 });
+  await sleep(1500);
+  log('⑤ 자기 점검', room.selfCheck && room.selfCheck.done === nPlayers ? '통과' : '실패', JSON.stringify(room.selfCheck && room.selfCheck.counts));
+  await t.emitWithAck('closing-step', { code, step: 1 });
+  await sleep(500);
+  log('① 되돌아가기', room.closingStep === 1 ? '통과' : '실패');
   log('근거 분류:', room.evidence.map((e) => e.label).join(','));
   log('점수:', room.groups.map((g) => g.members.map((m) => `${m.nick}=${m.score}`).join(' ')).join(' | '));
   log('사전/사후:', JSON.stringify(room.poll.pre), JSON.stringify(room.poll.post), '약속', room.pledges.length);

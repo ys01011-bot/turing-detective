@@ -160,30 +160,24 @@ io.on('connection', (socket) => {
     reply(cb, await G.setGreeting(c.room, c.p, text));
   });
 
-  socket.on('poll', ({ which, choice } = {}, cb) => {
+  // ── 정리 단계 (사전·사후 입장+이유, 원칙, 자기 점검) ──
+  const closingHandler = (fn) => (data = {}, cb) => {
     const c = ctx(socket);
     if (!c) return reply(cb, { ok: false });
-    const i = Number(choice);
-    if (!(i >= 0 && i <= 2)) return reply(cb, { ok: false });
-    if (which === 'post') c.p.postPoll = i;
-    else c.p.prePoll = i;
-    emitPlayer(c.room, c.p);
-    hub.emitTeacher(c.room);
-    reply(cb, { ok: true });
-  });
-
-  socket.on('pledge', ({ text } = {}, cb) => {
-    const c = ctx(socket);
-    if (!c) return reply(cb, { ok: false });
-    const t = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 100);
-    if (t.length < 2) return reply(cb, { ok: false, msg: '원칙을 한 줄 써 주세요.' });
-    const { findBanned } = require('./pipeline');
-    if (findBanned(t).length) return reply(cb, { ok: false, msg: '다시 써 주세요.' });
-    c.p.pledge = t;
-    emitPlayer(c.room, c.p);
-    hub.emitTeacher(c.room);
-    reply(cb, { ok: true });
-  });
+    const r = fn(c.room, c.p, data || {});
+    if (r && r.ok) {
+      emitPlayer(c.room, c.p);
+      hub.emitTeacher(c.room);
+    }
+    reply(cb, r || { ok: false });
+  };
+  // { which: 'pre'|'post', choice: 0~2, reason?: 한 줄 } — 사후는 이유가 꼭 있어야 한다
+  socket.on('poll', closingHandler((room, p, d) => G.setPoll(room, p, d)));
+  // { text, checks?: [bool, bool, bool] } — 고쳐 쓰기·다시 올리기 가능
+  socket.on('pledge', closingHandler((room, p, d) => G.setPledge(room, p, d)));
+  socket.on('pledge-checks', closingHandler((room, p, d) => G.setPledgeChecks(room, p, d)));
+  // { q: 0~2, v: 0 ☺ | 1 😐 | 2 ☹ }
+  socket.on('self-check', closingHandler((room, p, d) => G.setSelfCheck(room, p, d)));
 
   socket.on('ack-role', () => {
     const c = ctx(socket);
@@ -396,6 +390,7 @@ io.on('connection', (socket) => {
   );
 
   socket.on('closing', T(needRoom((room) => G.startClosing(room))));
+  socket.on('closing-step', T(needRoom((room, data) => G.setClosingStep(room, data.step))));
 
   socket.on(
     'set-label',

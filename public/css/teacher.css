@@ -114,3 +114,37 @@ body { font-size: 19px; }
 #aiBadge { margin-left: 8px; white-space: nowrap; font-size: 0.75rem; }
 #aiBadge:empty { display: none; }
 @media (max-width: 480px) { #aiBadge { display: none; } }
+
+/* T6 정리 단계 (①~⑤) */
+.step-ctl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.step-now .step-q { font-family: var(--f-title); font-size: 1.25rem; line-height: 1.5; }
+.wrap-line { background: #fff; border-radius: var(--r-md); padding: 10px 14px; border: 2px solid transparent; }
+.wrap-line.now { border-color: var(--lemon); box-shadow: 0 0 0 4px rgba(255, 214, 0, 0.18); }
+.wrap-text { font-family: var(--f-title); font-size: 1.15rem; margin-top: 4px; }
+.reason-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.rb-col { background: #fff; border-radius: var(--r-md); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.rb-col h3 { margin: 0; }
+.rb-0 { border-top: 6px solid var(--mint); }
+.rb-1 { border-top: 6px solid var(--lemon); }
+.rb-2 { border-top: 6px solid var(--coral); }
+.rb-item { border: 2px solid var(--line); border-radius: 14px; padding: 8px 10px; animation: pop 0.35s; }
+.rb-item.moved { border-color: var(--apricot); background: #fff6ee; }
+.rb-moved { font-size: 0.85rem; color: #8a4a17; font-weight: 700; }
+.rb-reason { font-size: 1.05rem; }
+.sbs { display: grid; grid-template-columns: 70px 1fr 1fr; gap: 8px; align-items: start; }
+.sbs-head { font-weight: 700; }
+.sbs-round { font-weight: 700; color: var(--ink-soft); padding-top: 8px; }
+.sbs-cell { display: flex; flex-direction: column; gap: 6px; }
+.sbs-msg { background: #fff; border-radius: 14px; padding: 8px 12px; border: 2px solid var(--sky); }
+.sbs-msg.ai { border-color: var(--lilac); }
+.resp-card { background: #fff; border-radius: var(--r-md); padding: 10px 14px; border: 2px dashed var(--apricot); font-weight: 600; }
+.pchecks { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
+.pc { font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; background: #eceff5; color: #a0a6b8; }
+.pc.on { background: var(--mint); color: #1d6b51; }
+.sc-row { display: flex; flex-direction: column; gap: 4px; }
+.sc-bars { display: flex; gap: 4px; }
+.sc-bar { border-radius: 10px; padding: 4px 8px; white-space: nowrap; min-width: 52px; }
+.sc-bar.f0 { background: var(--mint); }
+.sc-bar.f1 { background: var(--lemon); }
+.sc-bar.f2 { background: var(--coral); }
+@media (max-width: 1100px) { .reason-board { grid-template-columns: 1fr; } }

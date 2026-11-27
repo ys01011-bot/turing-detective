@@ -71,6 +71,12 @@
         <div class="card lilac stack">
           <h3>🤔 <span id="pollQ"></span></h3>
           <div id="prePoll" class="poll-btns"></div>
+          <p class="muted small" id="preReasonPrompt"></p>
+          <div class="row">
+            <input id="preReasonInput" class="grow" type="text" maxlength="100" autocomplete="off" placeholder="예) 말을 잘 들어 주니까 친구 같을 것 같아요" />
+            <button id="preReasonBtn" class="btn soft" type="button">이유 올리기</button>
+          </div>
+          <p id="preReasonDone" class="small hidden">✅ 내 이유: <b id="preReasonText"></b></p>
         </div>
       </div>
     </section>
@@ -205,11 +211,22 @@
           <p class="muted">마지막으로 생각을 정리해 봐요.</p>
         </div>
       </div>
-      <div class="card lilac stack">
+      <p class="center"><span id="closeStepPill" class="pill lilac"></span></p>
+      <div id="closeWait" class="card sky stack center hidden">
+        <h2>👀 <span id="closeWaitText">선생님 화면을 함께 봐요</span></h2>
+        <p class="muted">선생님이 다음 단계로 넘기면 여기에 쓸 칸이 나와요.</p>
+      </div>
+      <div id="closePoll" class="card lilac stack hidden">
         <h3>🤔 <span id="pollQ2"></span></h3>
         <div id="postPoll" class="poll-btns"></div>
+        <p id="postReasonPrompt"></p>
+        <div class="row">
+          <input id="postReasonInput" class="grow" type="text" maxlength="100" autocomplete="off" placeholder="예) 내 말을 잘 받아 줘서 친구 같았어요" />
+          <button id="postBtn" class="btn lilac" type="button">올리기</button>
+        </div>
+        <p id="postDone" class="hidden">✅ 올렸어요: <b id="postDoneChoice"></b> — <span id="postDoneReason"></span> <span class="muted small">(바꾸고 싶으면 다시 골라 올려도 돼요)</span></p>
       </div>
-      <div class="card mint stack">
+      <div id="closePledge" class="card mint stack hidden">
         <h3>🤝 AI 로봇과 지낼 원칙</h3>
         <p id="pledgePrompt"></p>
         <p class="muted small" id="pledgeExample"></p>
@@ -217,7 +234,12 @@
           <input id="pledgeInput" class="grow" type="text" maxlength="100" autocomplete="off" />
           <button id="pledgeBtn" class="btn mint" type="button">올리기</button>
         </div>
-        <p id="pledgeDone" class="hidden">✅ 원칙을 올렸어요: <b id="pledgeText"></b></p>
+        <div id="pledgeChecks" class="pledge-checks"></div>
+        <p id="pledgeDone" class="hidden">✅ 원칙을 올렸어요: <b id="pledgeText"></b> <span class="muted small">(점검해 보고 고쳐서 다시 올려도 돼요)</span></p>
+      </div>
+      <div id="closeSelf" class="card apricot stack hidden">
+        <h3>🪞 스스로 점검해 봐요</h3>
+        <div id="selfCheckList" class="self-check"></div>
       </div>
       <p class="center muted">내 점수: <b id="finalScore"></b>점</p>
     </section>

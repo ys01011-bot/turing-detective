@@ -174,7 +174,7 @@
     const cfg = R ? R.gameCfg : [];
     const sets = R ? R.sets : null;
     el.innerHTML = `<div class="card stack">
-        <h2>${R ? '설정 고치기' : '새 방 만들기'}</h2>
+        <div class="row"><h2 class="grow">${R ? '설정 고치기' : '새 방 만들기'}</h2><button class="btn apricot small" id="demoPreset" type="button" title="1판·1바퀴·턴 20초·투표 60초·밸런스 게임·Lv2·교사 터치">⚡ 6분 실연 설정</button></div>
         <div class="form-grid">
           ${R ? '' : `<div><label for="fGroups">모둠 수</label><select id="fGroups">${[1, 2, 3, 4].map((n) => `<option ${n === 3 ? 'selected' : ''}>${n}</option>`).join('')}</select></div>`}
           ${numField('fSize', '모둠 권장 인원 (3~7, 적어도 시작 가능)', S.groupSize ?? 6, 3, 7)}
@@ -239,6 +239,27 @@
         .then(paint)
         .catch(() => paint([{ id: 'balance', title: '밸런스 게임', question: '', flaws: ['agree', 'pattern', 'experience'], rounds: [{}] }]));
     $('saveRoom').onclick = saveRoom;
+    // 6분 실연(SPEC 3.8): 핵심 활동 한 판만 짧게
+    $('demoPreset').onclick = () => {
+      const put = (id, v) => $(id) && ($(id).value = v);
+      put('fGames', 1);
+      put('fRounds', 1);
+      put('fTurn', 20);
+      put('fVote', 60);
+      put('fLen', 60);
+      put('fPick', 'touch');
+      const first = document.querySelector('#gameCfg [data-game="0"]');
+      if (first) {
+        const sel = first.querySelector('.cfg-set');
+        if (sel && [...sel.options].some((o) => o.value === 'balance')) {
+          sel.value = 'balance';
+          sel.dispatchEvent(new Event('change'));
+        }
+        const lv = document.querySelector('#gameCfg [data-game="0"] .cfg-lv');
+        if (lv) lv.value = 'Lv2';
+      }
+      TD.toast('6분 실연 설정을 넣었어요. 확인하고 저장하세요.');
+    };
     if ($('cancelEdit')) $('cancelEdit').onclick = () => {
       showForm = false;
       renderT1();
@@ -513,40 +534,140 @@
   }
 
   // ── T6 정리 ──────────────────────────────────
-  function renderT6() {
+  // 정리 단계 ①~⑤를 교사가 넘긴다. 핵심: 찬반 이유 보드(사후 입장 + 이유, 입장 바뀐 학생 표시)
+  let sbsG = 0; // 사람 답·AI 답 나란히: 모둠
+  let sbsGame = 0; // 0 = 그 모둠의 마지막 판
+  function t6ReasonBoard() {
     const P = R.poll;
-    const preN = P.pre.reduce((a, b) => a + b, 0) || 1;
-    const postN = P.post.reduce((a, b) => a + b, 0) || 1;
+    const list = R.reasons || [];
+    const total = R.groups.reduce((n, g) => n + g.members.length, 0);
+    const posted = list.filter((x) => x.post !== null && x.post !== undefined);
+    const changed = posted.filter((x) => x.pre !== null && x.pre !== undefined && x.pre !== x.post);
+    const preN = P.pre.reduce((x, y) => x + y, 0) || 1;
+    const postN = P.post.reduce((x, y) => x + y, 0) || 1;
+    const cols = P.options
+      .map((o, i) => {
+        const items = posted.filter((x) => x.post === i);
+        return `<div class="rb-col rb-${i}"><h3>${esc(o)} <span class="pill gray small">${items.length}명</span></h3>${
+          items
+            .map((x) => {
+              const moved = x.pre !== null && x.pre !== undefined && x.pre !== x.post;
+              return `<div class="rb-item ${moved ? 'moved' : ''}">
+                ${moved ? `<div class="rb-moved">🔀 생각이 바뀌었어요 (처음: ${esc(P.options[x.pre])})</div>` : ''}
+                <div class="rb-reason">${esc(x.postReason || '(이유 없음)')}</div>
+                <div class="muted small">${x.groupIdx + 1}모둠 ${esc(x.nick)}${moved && x.preReason ? ` · 처음 이유: ${esc(x.preReason)}` : ''}</div>
+              </div>`;
+            })
+            .join('') || '<p class="muted small">아직 없어요.</p>'
+        }</div>`;
+      })
+      .join('');
+    return `<div class="card lilac stack t6-panel">
+        <div class="row"><h2 class="grow">🗳 찬반 이유 보드 — ${esc(P.question)}</h2>
+          <span class="pill mint">올린 친구 ${posted.length} / ${total}명</span>
+          <span class="pill apricot">🔀 생각이 바뀐 친구 ${changed.length}명</span></div>
+        <div class="poll-chart">${P.options
+          .map((o, i) => `<div class="poll-row"><div class="lbl">${esc(o)}</div><div class="bars">
+            <div class="bar pre" style="width:${Math.max(6, (P.pre[i] / preN) * 100)}%">사전 ${P.pre[i]}</div>
+            <div class="bar post" style="width:${Math.max(6, (P.post[i] / postN) * 100)}%">사후 ${P.post[i]}</div></div></div>`)
+          .join('')}</div>
+        <p class="muted small">정답이 있는 질문이 아니에요. 입장을 평가하지 말고 "놀이의 어떤 장면 때문에?"라고 이유를 물어 주세요.</p>
+        <div class="reason-board">${cols}</div>
+      </div>`;
+  }
+  function t6SideBySide() {
+    const g = R.groups[sbsG] || R.groups[0];
+    if (!g) return '';
+    const games = [...new Set(g.messages.map((m) => m.game))].sort((x, y) => x - y);
+    const game = games.includes(sbsGame) ? sbsGame : games[games.length - 1] || 0;
+    const msgs = g.messages.filter((m) => m.game === game && !m.pass);
+    const rounds = [...new Set(msgs.map((m) => m.round))].sort((x, y) => x - y);
+    const rows = rounds
+      .map((rd) => {
+        const hs = msgs.filter((m) => m.round === rd && !m.isAI);
+        const as = msgs.filter((m) => m.round === rd && m.isAI);
+        return `<div class="sbs-round">${rd}바퀴</div>
+          <div class="sbs-cell">${hs.map((m) => `<div class="sbs-msg">${esc(m.text)}<div class="muted small">${esc(m.nick)}</div></div>`).join('') || '<span class="muted small">—</span>'}</div>
+          <div class="sbs-cell ai">${as.map((m) => `<div class="sbs-msg ai">${esc(m.text)}<div class="muted small">${esc(m.nick)}인 척${m.flaw ? ' · 허점: ' + esc(flawName(m.flaw)) : ''}</div></div>`).join('') || '<span class="muted small">—</span>'}</div>`;
+      })
+      .join('');
+    return `<div class="card sky stack t6-panel">
+        <div class="row"><h2 class="grow">🙋 사람 답 · 🤖 AI 답 나란히</h2>
+          <select id="sbsGroup">${R.groups.map((x) => `<option value="${x.idx}" ${x.idx === g.idx ? 'selected' : ''}>${x.idx + 1}모둠</option>`).join('')}</select>
+          <select id="sbsGame">${games.map((n) => `<option value="${n}" ${n === game ? 'selected' : ''}>${n}판</option>`).join('') || '<option value="0">판 없음</option>'}</select></div>
+        <p class="muted small">같은 질문에 사람과 AI가 한 답이에요. 같은 점·다른 점을 찾아봐요. "이 말을 할 때 AI는 정말 그 일을 겪었을까요?"</p>
+        ${rows ? `<div class="sbs"><div class="sbs-head"></div><div class="sbs-head">🙋 사람 답</div><div class="sbs-head">🤖 AI 답</div>${rows}</div>` : '<p class="muted">이 모둠은 아직 대화가 없어요.</p>'}
+      </div>`;
+  }
+  function t6Pledges() {
+    const C = R.pledgeChecks || [];
+    return `<div class="card mint stack t6-panel">
+        <h2>🤝 AI 로봇과 지낼 원칙 게시판 <span class="pill gray small">${R.pledges.length}개</span></h2>
+        ${R.responsibilityQ ? `<div class="resp-card">❓ ${esc(R.responsibilityQ)}<div class="muted small">마피아였던 친구: ${R.groups.map((g) => g.members.filter((m) => m.wasMafia).map((m) => `${g.idx + 1}모둠 ${esc(m.nick)}`).join(', ')).filter(Boolean).join(' / ') || '없음'}</div></div>` : ''}
+        <p class="muted small">점검: ${C.map((c) => `${esc(c.icon)} ${esc(c.name)}`).join(' · ')}</p>
+        <div class="pledges">${R.pledges.map((p) => `<div class="pledge">${esc(p.text)}
+          <div class="pchecks">${C.map((c, i) => `<span class="pc ${p.checks && p.checks[i] ? 'on' : ''}" title="${esc(c.q)}">${esc(c.icon)} ${esc(c.name)}</span>`).join('')}</div>
+          <div class="muted small">${p.groupIdx + 1}모둠 ${esc(p.nick)}</div></div>`).join('') || '<p class="muted">④ 원칙 세우기 단계에서 학생들이 쓰면 여기에 모여요.</p>'}</div>
+      </div>`;
+  }
+  function t6SelfCheck() {
+    const SC = R.selfCheck || { questions: [], faces: [], counts: [], done: 0 };
+    return `<div class="card apricot stack t6-panel">
+        <h2>🪞 자기 점검 집계 <span class="pill gray small">${SC.done}명 참여</span></h2>
+        ${SC.questions
+          .map((q, qi) => {
+            const c = SC.counts[qi] || [0, 0, 0];
+            const n = c.reduce((x, y) => x + y, 0) || 1;
+            return `<div class="sc-row"><div>${qi + 1}. ${esc(q)}</div><div class="sc-bars">${SC.faces
+              .map((f, v) => `<div class="sc-bar f${v}" style="flex:${Math.max(0.15, c[v] / n)}">${f} ${c[v]}</div>`)
+              .join('')}</div></div>`;
+          })
+          .join('')}
+      </div>`;
+  }
+  function t6Evidence() {
     const best = R.evidence.filter((e) => e.best);
+    return `<div class="card apricot stack t6-panel"><h2>🏅 명탐정 근거상 <span class="muted small">(근거 보드 전체는 ⑤ 근거 보드 탭에서)</span></h2>${best.map((e) => `<div class="pledge">${esc(e.reason)}<div class="muted small">${e.groupIdx + 1}모둠 ${esc(e.voterNick)}</div></div>`).join('') || '<p class="muted">근거 보드에서 근거를 눌러 골라 주세요.</p>'}</div>`;
+  }
+  function t6AiMsgs() {
     const aiMsgs = [];
     R.groups.forEach((g) => g.messages.filter((m) => m.isAI).forEach((m) => aiMsgs.push({ ...m, gi: g.idx })));
+    return `<div class="card lilac stack t6-panel"><h2>🤖 AI가 쓴 메시지 모음</h2><div class="stack">${aiMsgs.map((m) => `<div class="pledge" style="border-color:var(--lilac)">${esc(m.text)}<div class="muted small">${m.gi + 1}모둠 ${m.game}판 ${m.round}바퀴 · ${esc(m.nick)}인 척 · ${m.flaw ? '허점: ' + esc(flawName(m.flaw)) : m.source === 'backup' ? '백업 문장' : '허점 없음'}</div></div>`).join('') || '<p class="muted">아직 없어요.</p>'}</div></div>`;
+  }
+  function renderT6() {
+    const closing = R.phase === 'CLOSING';
+    const step = closing ? R.closingStep || 3 : 0;
+    const names = R.closingStepNames || [];
+    const cur = step ? R.closingSteps[step - 1] : null;
+    const panelOf = { 1: t6Evidence, 2: t6SideBySide, 3: t6ReasonBoard, 4: t6Pledges, 5: t6SelfCheck };
+    // 지금 단계의 보기를 먼저, 찬반 이유 보드는 늘 위쪽에
+    const order = [step, 3, 2, 4, 5, 1].filter((x, i, arr) => x && arr.indexOf(x) === i);
+    const wrap = (n, text, extra) =>
+      text ? `<div class="wrap-line ${(n === 1 && step === 2) || (n === 2 && step === 5) ? 'now' : ''}"><b>교사 매듭 ${n === 1 ? '① (② 깊이 보기)' : '② (⑤ 매듭)'}</b><div class="wrap-text">“${esc(text)}”</div>${extra ? `<div class="muted small">${esc(extra)}</div>` : ''}</div>` : '';
     $('t6').innerHTML = `<div class="row" style="margin-bottom:14px">
         <h2 class="grow">정리</h2>
-        ${R.phase === 'CLOSING' ? '<span class="pill mint">학생 화면: 사후 질문·원칙 쓰는 중</span>' : '<button class="btn mint big" id="startClosing" type="button">🧩 정리 단계 시작 (학생 화면 전환)</button>'}
+        ${closing
+          ? `<div class="step-ctl"><button class="btn soft small" id="stepPrev" type="button" ${step <= 1 ? 'disabled' : ''}>◀ 이전 단계</button>
+              ${[1, 2, 3, 4, 5].map((n) => `<button class="btn small ${n === step ? 'lilac' : 'soft'} step-go" data-step="${n}" type="button">${esc(names[n - 1] || n)}</button>`).join('')}
+              <button class="btn lilac small" id="stepNext" type="button" ${step >= 5 ? 'disabled' : ''}>다음 단계 ▶</button></div>`
+          : '<button class="btn mint big" id="startClosing" type="button">🧩 정리 단계 시작 (학생 화면 전환)</button>'}
       </div>
-      <div class="two">
-        <div class="card lilac stack">
-          <h2>🤔 ${esc(P.question)}</h2>
-          <div class="poll-chart">${P.options
-            .map((o, i) => `<div class="poll-row"><div class="lbl">${esc(o)}</div><div class="bars">
-              <div class="bar pre" style="width:${Math.max(6, (P.pre[i] / preN) * 100)}%">사전 ${P.pre[i]}</div>
-              <div class="bar post" style="width:${Math.max(6, (P.post[i] / postN) * 100)}%">사후 ${P.post[i]}</div></div></div>`)
-            .join('')}</div>
-        </div>
-        <div class="card stack">
-          <h2>🗣 발문 순서</h2>
-          <ol class="steps">${R.closingSteps.map((s, i) => `<li><b>${i + 1}. ${esc(s.q)}</b><br/><span class="muted small">띄울 화면: ${esc(s.screen)}</span></li>`).join('')}</ol>
-        </div>
-      </div>
-      <div class="card mint stack" style="margin-top:16px">
-        <h2>🤝 AI 로봇과 지낼 원칙 게시판 <span class="pill gray small">${R.pledges.length}개</span></h2>
-        <div class="pledges">${R.pledges.map((p) => `<div class="pledge">${esc(p.text)}<div class="muted small">${p.groupIdx + 1}모둠 ${esc(p.nick)}</div></div>`).join('') || '<p class="muted">정리 단계에서 학생들이 쓰면 여기에 모여요.</p>'}</div>
-      </div>
-      <div class="two" style="margin-top:16px">
-        <div class="card apricot stack"><h2>🏅 명탐정 근거상</h2>${best.map((e) => `<div class="pledge">${esc(e.reason)}<div class="muted small">${e.groupIdx + 1}모둠 ${esc(e.voterNick)}</div></div>`).join('') || '<p class="muted">근거 보드에서 근거를 눌러 골라 주세요.</p>'}</div>
-        <div class="card lilac stack"><h2>🤖 AI가 쓴 메시지 모음</h2><div class="stack">${aiMsgs.map((m) => `<div class="pledge" style="border-color:var(--lilac)">${esc(m.text)}<div class="muted small">${m.gi + 1}모둠 ${m.game}판 ${m.round}바퀴 · ${esc(m.nick)}인 척 · ${m.flaw ? '허점: ' + esc(flawName(m.flaw)) : m.source === 'backup' ? '백업 문장' : '허점 없음'}</div></div>`).join('') || '<p class="muted">아직 없어요.</p>'}</div></div>
-      </div>`;
+      ${cur
+        ? `<div class="two">
+          <div class="card stack step-now"><span class="pill lilac">지금: ${esc(names[step - 1] || step)}</span><div class="step-q">🗣 ${esc(cur.q)}</div><span class="muted small">띄울 화면: ${esc(cur.screen)}</span>
+            <span class="muted small">학생 화면: ${step <= 2 ? '선생님 화면 함께 보기(대기)' : step === 3 ? '사후 입장 + 이유 쓰기' : step === 4 ? '원칙 쓰기 + 점검 3개' : '자기 점검 3문항'}</span></div>
+          <div class="card lemon stack">${wrap(1, R.closingWrap1)}${wrap(2, R.closingWrap2, R.closingNext)}</div>
+        </div>`
+        : `<div class="card stack"><h2>🗣 발문 순서</h2><ol class="steps">${R.closingSteps.map((x, i) => `<li><b>${i + 1}. ${esc(x.q)}</b><br/><span class="muted small">띄울 화면: ${esc(x.screen)}</span></li>`).join('')}</ol>
+          <p class="muted small">정리 단계를 시작하면 학생 화면은 바로 ③ 입장 나누기(사후 입장 + 이유)로 열려요. ①② 이야기를 먼저 하려면 '이전 단계'로 돌아가세요.</p></div>`}
+      <div class="stack" style="margin-top:16px">${order.map((n) => panelOf[n]()).join('')}${t6AiMsgs()}</div>`;
     if ($('startClosing')) $('startClosing').onclick = () => confirm('모든 모둠을 정리 단계로 넘길까요? (진행 중인 판은 멈춰요)') && act('closing', {}, '정리 단계를 시작했어요.');
+    const go = (n) => act('closing-step', { step: n });
+    if ($('stepPrev')) $('stepPrev').onclick = () => go(step - 1);
+    if ($('stepNext')) $('stepNext').onclick = () => go(step + 1);
+    document.querySelectorAll('#t6 .step-go').forEach((b) => (b.onclick = () => go(Number(b.dataset.step))));
+    if ($('sbsGroup')) $('sbsGroup').onchange = (e) => { sbsG = Number(e.target.value); sbsGame = 0; renderT6(); };
+    if ($('sbsGame')) $('sbsGame').onchange = (e) => { sbsGame = Number(e.target.value); renderT6(); };
   }
 
   // ── T7 수업 종료 ──────────────────────────────

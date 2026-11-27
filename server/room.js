@@ -73,6 +73,7 @@ function createRoom({ groupCount = 3, settings = {}, gameCfg = [] } = {}) {
     settings: S,
     gameCfg: cfg,
     phase: 'ACTIVE', // ACTIVE | CLOSING
+    closingStep: 0, // 정리 단계 ①~⑤ (교사가 넘김, 0 = 시작 전)
     players: new Map(),
     groups: [],
     evidence: [], // {id, game, groupIdx, voterId, voterNick, targetNick, targetWasMafia, reason, label, best}
@@ -145,7 +146,11 @@ function addPlayer(room, { nick, groupIdx }) {
     score: 0,
     prePoll: null,
     postPoll: null,
+    preReason: '',
+    postReason: '',
     pledge: '',
+    pledgeChecks: [false, false, false], // 🔄 입장 바꾸기 / 🌍 모두가 하면 / 🆕 다른 경우
+    selfCheck: [null, null, null], // 0 ☺ / 1 😐 / 2 ☹
   };
   room.players.set(p.id, p);
   g.playerIds.push(p.id);
@@ -204,6 +209,13 @@ function studentState(room, p) {
       greetingPrompt: Q.greetingPrompt,
       pledgePrompt: Q.pledgePrompt,
       pledgeExample: Q.pledgeExample,
+      closingStep: room.closingStep || 0,
+      closingStepNames: Q.closingStepNames || [],
+      closingWaitText: Q.closingWaitText || '',
+      preReasonPrompt: Q.preReasonPrompt || '',
+      postReasonPrompt: Q.postReasonPrompt || '',
+      pledgeChecks: Q.pledgeChecks || [],
+      selfCheck: Q.selfCheck || null,
     },
     me: {
       id: p.id,
@@ -213,7 +225,11 @@ function studentState(room, p) {
       score: p.score,
       prePoll: p.prePoll,
       postPoll: p.postPoll,
+      preReason: p.preReason || '',
+      postReason: p.postReason || '',
       pledge: p.pledge,
+      pledgeChecks: p.pledgeChecks || [false, false, false],
+      selfCheck: p.selfCheck || [null, null, null],
       role: showRole ? (isMafia ? 'mafia' : 'human') : null,
       roleText: showRole ? Q.roleText[isMafia ? 'mafia' : 'human'] : null,
       acked: g.acks.has(p.id),
@@ -293,7 +309,18 @@ function teacherState(room) {
     expiresAt: room.expiresAt,
     poll: { question: Q.poll.question, options: Q.poll.options, pre: pollCount('prePoll'), post: pollCount('postPoll') },
     closingSteps: Q.closingSteps,
-    pledges: players.filter((p) => p.pledge).map((p) => ({ nick: p.nick, groupIdx: p.groupIdx, text: p.pledge })),
+    closingStep: room.closingStep || 0,
+    closingStepNames: Q.closingStepNames || [],
+    closingWrap1: Q.closingWrap1 || '',
+    closingWrap2: Q.closingWrap2 || '',
+    closingNext: Q.closingNext || '',
+    responsibilityQ: Q.responsibilityQ || '',
+    pledgeChecks: Q.pledgeChecks || [],
+    selfCheck: selfCheckTally(Q, players),
+    reasons: players
+      .filter((p) => p.prePoll !== null || p.postPoll !== null)
+      .map((p) => ({ id: p.id, nick: p.nick, groupIdx: p.groupIdx, pre: p.prePoll, post: p.postPoll, preReason: p.preReason || '', postReason: p.postReason || '' })),
+    pledges: players.filter((p) => p.pledge).map((p) => ({ nick: p.nick, groupIdx: p.groupIdx, text: p.pledge, checks: p.pledgeChecks || [false, false, false] })),
     evidence: room.evidence,
     alerts: room.alerts.slice(-30),
     groups: room.groups.map((g) => {
@@ -335,6 +362,21 @@ function teacherState(room) {
       };
     }),
   };
+}
+
+/** 자기 점검 집계: 문항마다 [☺, 😐, ☹] 인원 */
+function selfCheckTally(Q, players) {
+  const qs = (Q.selfCheck && Q.selfCheck.questions) || [];
+  const counts = qs.map(() => [0, 0, 0]);
+  let done = 0;
+  for (const p of players) {
+    const a = p.selfCheck || [];
+    if (a.some((v) => v !== null && v !== undefined)) done++;
+    a.forEach((v, i) => {
+      if (counts[i] && v >= 0 && v <= 2) counts[i][v]++;
+    });
+  }
+  return { questions: qs, faces: (Q.selfCheck && Q.selfCheck.faces) || ['☺', '😐', '☹'], counts, done };
 }
 
 // 만료된 방 정리

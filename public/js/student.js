@@ -186,13 +186,26 @@
   function bubbleHtml(nick, text, cls = '') {
     return `<div class="bubble-row">${avatar(nick)}<div><div class="who">${esc(nick)}</div><div class="bubble ${cls}">${esc(text)}</div></div></div>`;
   }
-  function pollButtons(el, which, chosen) {
+  // onPick 이 있으면 고르기만 하고(사후: 이유와 함께 올림), 없으면 바로 보낸다(사전)
+  function pollButtons(el, which, chosen, onPick) {
     el.innerHTML = S.room.poll.options
       .map((o, i) => `<button type="button" class="btn soft ${chosen === i ? 'sel' : ''}" data-i="${i}">${esc(o)}</button>`)
       .join('');
     el.querySelectorAll('button').forEach((b) => {
-      b.onclick = () => socket.emit('poll', { which, choice: Number(b.dataset.i) }, () => TD.toast('골랐어요!'));
+      b.onclick = () => {
+        const i = Number(b.dataset.i);
+        if (onPick) return onPick(i);
+        socket.emit('poll', { which, choice: i }, () => TD.toast('골랐어요!'));
+      };
     });
+  }
+  // 입력 중인 칸은 덮어쓰지 않고, 비어 있을 때만 저장된 글을 채워 준다 (고쳐 쓰기)
+  function fillInput(el, saved) {
+    if (document.activeElement === el) return;
+    if (el.dataset.saved !== saved) {
+      if (!el.value || el.value === el.dataset.saved) el.value = saved || '';
+      el.dataset.saved = saved || '';
+    }
   }
   function renderLobby() {
     show('s-lobby');
@@ -211,7 +224,23 @@
     $('greetBtn').textContent = S.me.greeting ? '고치기' : '올리기';
     $('pollQ').textContent = S.room.poll.question;
     pollButtons($('prePoll'), 'pre', S.me.prePoll);
+    $('preReasonPrompt').textContent = S.room.preReasonPrompt || '왜 그렇게 생각했는지 한 줄로 써 볼까요? (안 써도 괜찮아요)';
+    $('preReasonDone').classList.toggle('hidden', !S.me.preReason);
+    $('preReasonText').textContent = S.me.preReason || '';
+    $('preReasonBtn').textContent = S.me.preReason ? '이유 고치기' : '이유 올리기';
   }
+  function sendPreReason() {
+    if (S.me.prePoll === null || S.me.prePoll === undefined) return TD.toast('먼저 위에서 하나를 골라 주세요.', true);
+    const reason = $('preReasonInput').value.trim();
+    if (!reason) return TD.toast('이유를 한 줄 써 주세요. 안 써도 괜찮아요.', true);
+    socket.emit('poll', { which: 'pre', choice: S.me.prePoll, reason }, (r) => {
+      if (!r || !r.ok) return TD.toast((r && r.msg) || '다시 써 주세요.', true);
+      $('preReasonInput').value = '';
+      TD.toast('이유를 올렸어요!');
+    });
+  }
+  $('preReasonBtn').onclick = sendPreReason;
+  $('preReasonInput').onkeydown = (e) => { if (e.key === 'Enter' && !e.isComposing) sendPreReason(); };
   function sendGreeting() {
     const text = $('greetInput').value.trim();
     if (!text) return TD.toast('한 줄 인사를 써 주세요.', true);
@@ -521,23 +550,94 @@
   }
 
   // ── S7 정리 ───────────────────────────────────
+  // 교사가 넘기는 단계(①~⑤)에 따라 그 단계의 입력만 보인다.
+  // ①② 대기, ③ 사후 입장+이유(기본), ④ 원칙+검사 3개, ⑤ 자기 점검
   $('closeMascot').innerHTML = TD.turingi('party', 110);
+  let postSel = null; // 사후 입장: 고른 것 (이유와 함께 '올리기'로 보냄)
   function renderClosing() {
     show('s-closing');
+    const step = S.room.closingStep || 3;
+    const names = S.room.closingStepNames || [];
+    $('closeStepPill').textContent = names[step - 1] || '';
+    const postDone = S.me.postPoll !== null && S.me.postPoll !== undefined && !!S.me.postReason;
+    // 사후 입장을 아직 안 냈으면 ④⑤에서도 함께 보여 준다 (빠뜨리지 않게)
+    const showPoll = step === 3 || (step >= 4 && !postDone);
+    $('closeWait').classList.toggle('hidden', step >= 3);
+    $('closeWaitText').textContent = S.room.closingWaitText || '선생님 화면을 함께 봐요';
+    $('closePoll').classList.toggle('hidden', !showPoll);
+    $('closePledge').classList.toggle('hidden', step !== 4);
+    $('closeSelf').classList.toggle('hidden', step !== 5);
+
+    // ③ 사후 입장 + 이유
+    if (postSel === null && S.me.postPoll !== null && S.me.postPoll !== undefined) postSel = S.me.postPoll;
     $('pollQ2').textContent = S.room.poll.question;
-    pollButtons($('postPoll'), 'post', S.me.postPoll);
+    pollButtons($('postPoll'), 'post', postSel, (i) => {
+      postSel = i;
+      renderClosing();
+      if (!$('postReasonInput').value.trim()) $('postReasonInput').focus();
+    });
+    $('postReasonPrompt').textContent = S.room.postReasonPrompt || '왜 그렇게 생각했나요? 이유를 한 줄로 써 주세요.';
+    fillInput($('postReasonInput'), S.me.postReason || '');
+    $('postDone').classList.toggle('hidden', !postDone);
+    $('postDoneChoice').textContent = postDone ? S.room.poll.options[S.me.postPoll] : '';
+    $('postDoneReason').textContent = S.me.postReason || '';
+    $('postBtn').textContent = postDone ? '고쳐서 올리기' : '올리기';
+
+    // ④ 원칙 + 검사 3개
     $('pledgePrompt').textContent = S.room.pledgePrompt;
     $('pledgeExample').textContent = S.room.pledgeExample;
+    fillInput($('pledgeInput'), S.me.pledge || '');
     $('pledgeDone').classList.toggle('hidden', !S.me.pledge);
     $('pledgeText').textContent = S.me.pledge;
+    $('pledgeBtn').textContent = S.me.pledge ? '고쳐서 올리기' : '올리기';
+    const checks = S.me.pledgeChecks || [false, false, false];
+    $('pledgeChecks').innerHTML =
+      '<p class="small"><b>내 원칙을 점검해 봐요.</b> 괜찮으면 체크하고, 아니면 고쳐 써요.</p>' +
+      (S.room.pledgeChecks || [])
+        .map((c, i) => `<label class="pcheck ${checks[i] ? 'on' : ''}"><input type="checkbox" data-i="${i}" ${checks[i] ? 'checked' : ''}/> <b>${esc(c.icon)} ${esc(c.name)}</b><span class="small">${esc(c.q)}</span></label>`)
+        .join('');
+    $('pledgeChecks').querySelectorAll('input').forEach((box) => {
+      box.onchange = () => {
+        const next = [...checks];
+        next[Number(box.dataset.i)] = box.checked;
+        socket.emit('pledge-checks', { checks: next });
+      };
+    });
+
+    // ⑤ 자기 점검
+    const SC = S.room.selfCheck || { questions: [], faces: [], faceNames: [] };
+    const mine = S.me.selfCheck || [];
+    const fn = SC.faceNames || [];
+    $('selfCheckList').innerHTML = SC.questions
+      .map((q, qi) => `<div class="sc-q"><p>${qi + 1}. ${esc(q)}</p><div class="sc-faces">${SC.faces
+        .map((f, v) => `<button type="button" class="btn soft ${mine[qi] === v ? 'sel' : ''}" data-q="${qi}" data-v="${v}"><span class="face">${f}</span><span class="small">${esc(fn[v] || '')}</span></button>`)
+        .join('')}</div></div>`)
+      .join('');
+    $('selfCheckList').querySelectorAll('button').forEach((b) => {
+      b.onclick = () => socket.emit('self-check', { q: Number(b.dataset.q), v: Number(b.dataset.v) });
+    });
     $('finalScore').textContent = S.me.score;
   }
+  function sendPost() {
+    if (postSel === null) return TD.toast('먼저 하나를 골라 주세요.', true);
+    const reason = $('postReasonInput').value.trim();
+    if (reason.length < 2) return TD.toast('왜 그렇게 생각했는지 이유를 한 줄 써 주세요.', true);
+    $('postBtn').disabled = true;
+    socket.emit('poll', { which: 'post', choice: postSel, reason }, (r) => {
+      $('postBtn').disabled = false;
+      if (!r || !r.ok) return TD.toast((r && r.msg) || '다시 써 주세요.', true);
+      $('postReasonInput').dataset.saved = reason;
+      TD.toast('생각을 올렸어요!');
+    });
+  }
+  $('postBtn').onclick = sendPost;
+  $('postReasonInput').onkeydown = (e) => { if (e.key === 'Enter' && !e.isComposing) sendPost(); };
   function sendPledge() {
     const text = $('pledgeInput').value.trim();
     if (!text) return TD.toast('원칙을 한 줄 써 주세요.', true);
     socket.emit('pledge', { text }, (r) => {
       if (!r || !r.ok) return TD.toast((r && r.msg) || '다시 써 주세요.', true);
-      $('pledgeInput').value = '';
+      $('pledgeInput').dataset.saved = text;
       TD.toast('원칙을 올렸어요!');
     });
   }

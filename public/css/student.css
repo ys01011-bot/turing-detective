@@ -100,3 +100,17 @@
 /* 터치 지정: 엎드리기 안내 */
 #touchPanel { max-width: 520px; margin: 0 auto; text-align: center; }
 .touch-emoji { font-size: 64px; line-height: 1; }
+
+/* S7 정리 단계 (①~⑤) */
+#closeStepPill:empty { display: none; }
+.pledge-checks { display: flex; flex-direction: column; gap: 8px; }
+.pcheck { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 8px 12px; cursor: pointer; }
+.pcheck.on { border-color: var(--mint-d); background: #effcf6; }
+.pcheck input { width: 22px; height: 22px; }
+.pcheck span { flex-basis: 100%; color: var(--ink-soft); }
+.self-check { display: flex; flex-direction: column; gap: 14px; }
+.sc-q p { margin: 0 0 6px; font-weight: 600; }
+.sc-faces { display: flex; gap: 8px; flex-wrap: wrap; }
+.sc-faces .btn { flex: 1 1 110px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px; }
+.sc-faces .btn .face { font-size: 1.8rem; line-height: 1; }
+.sc-faces .btn.sel { background: var(--apricot-d); color: #fff; border-color: var(--apricot-d); box-shadow: 0 4px 0 #b8662a; }

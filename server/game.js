@@ -480,8 +480,70 @@ function startClosing(room) {
     g.state = 'CLOSING';
     hub.emitGroup(room, g);
   }
+  // 교사가 단계를 넘기지 않아도 바로 입장+이유를 쓸 수 있게 ③에서 시작한다 (①②는 '이전 단계'로 돌아가 쓸 수 있음)
+  if (!room.closingStep) room.closingStep = 3;
+  for (const g of room.groups) hub.emitGroup(room, g);
   classifyRoom(room).then(() => hub.emitTeacher(room));
   hub.emitTeacher(room);
+}
+
+/** 교사가 정리 단계 ①~⑤를 넘긴다. 학생 화면은 그 단계의 입력만 보인다. */
+function setClosingStep(room, step) {
+  if (room.phase !== 'CLOSING') return { ok: false, msg: '먼저 정리 단계를 시작해 주세요.' };
+  const n = Math.round(Number(step));
+  if (!(n >= 1 && n <= 5)) return { ok: false, msg: '단계는 1~5 사이예요.' };
+  room.closingStep = n;
+  for (const g of room.groups) hub.emitGroup(room, g);
+  hub.emitTeacher(room);
+  return { ok: true, step: n };
+}
+
+const { findBanned } = require('./pipeline');
+const cleanLine = (t, max = 100) => String(t || '').replace(/\s+/g, ' ').trim().slice(0, max);
+
+/** 사전·사후 입장 (+ 이유 한 줄: 사전은 선택, 사후는 필수) */
+function setPoll(room, p, { which, choice, reason } = {}) {
+  const i = Number(choice);
+  if (!(i >= 0 && i <= 2)) return { ok: false, msg: '하나를 골라 주세요.' };
+  const r = reason === undefined || reason === null ? null : cleanLine(reason);
+  if (r && findBanned(r).length) return { ok: false, msg: '이유를 다시 써 주세요.' };
+  if (which === 'post') {
+    const finalReason = r !== null ? r : p.postReason;
+    if (!finalReason || finalReason.length < 2) return { ok: false, msg: '왜 그렇게 생각했는지 이유를 한 줄 써 주세요.' };
+    p.postPoll = i;
+    p.postReason = finalReason;
+  } else {
+    p.prePoll = i;
+    if (r !== null) p.preReason = r;
+  }
+  return { ok: true };
+}
+
+const normChecks = (c) => [0, 1, 2].map((k) => !!(Array.isArray(c) && c[k]));
+
+/** 원칙 쓰기 (고쳐 쓰기·다시 올리기 가능) + 검사 3개 체크 */
+function setPledge(room, p, { text, checks } = {}) {
+  const t = cleanLine(text);
+  if (t.length < 2) return { ok: false, msg: '원칙을 한 줄 써 주세요.' };
+  if (findBanned(t).length) return { ok: false, msg: '다시 써 주세요.' };
+  p.pledge = t;
+  if (checks !== undefined) p.pledgeChecks = normChecks(checks);
+  return { ok: true };
+}
+
+function setPledgeChecks(room, p, { checks } = {}) {
+  p.pledgeChecks = normChecks(checks);
+  return { ok: true };
+}
+
+/** 자기 점검: q(0~2) 문항에 v(0 ☺, 1 😐, 2 ☹) */
+function setSelfCheck(room, p, { q, v } = {}) {
+  const qi = Number(q);
+  const vi = Number(v);
+  if (!(qi >= 0 && qi <= 2) || !(vi >= 0 && vi <= 2)) return { ok: false };
+  if (!Array.isArray(p.selfCheck)) p.selfCheck = [null, null, null];
+  p.selfCheck[qi] = vi;
+  return { ok: true };
 }
 
 module.exports = {
@@ -500,6 +562,11 @@ module.exports = {
   forceBackup,
   finishVoting,
   startClosing,
+  setClosingStep,
+  setPoll,
+  setPledge,
+  setPledgeChecks,
+  setSelfCheck,
   addAlert,
   roundInfo,
 };
