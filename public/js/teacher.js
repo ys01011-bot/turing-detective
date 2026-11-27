@@ -505,7 +505,7 @@
     R.groups.forEach((g) => g.messages.filter((m) => m.isAI).forEach((m) => aiMsgs.push({ ...m, gi: g.idx })));
     $('t6').innerHTML = `<div class="row" style="margin-bottom:14px">
         <h2 class="grow">정리</h2>
-        ${R.phase === 'CLOSING' ? '<span class="pill mint">학생 화면: 사후 질문·약속 쓰는 중</span>' : '<button class="btn mint big" id="startClosing" type="button">🧩 정리 단계 시작 (학생 화면 전환)</button>'}
+        ${R.phase === 'CLOSING' ? '<span class="pill mint">학생 화면: 사후 질문·원칙 쓰는 중</span>' : '<button class="btn mint big" id="startClosing" type="button">🧩 정리 단계 시작 (학생 화면 전환)</button>'}
       </div>
       <div class="two">
         <div class="card lilac stack">
@@ -522,7 +522,7 @@
         </div>
       </div>
       <div class="card mint stack" style="margin-top:16px">
-        <h2>🤝 AI 친구 약속 게시판 <span class="pill gray small">${R.pledges.length}개</span></h2>
+        <h2>🤝 AI 로봇과 지낼 원칙 게시판 <span class="pill gray small">${R.pledges.length}개</span></h2>
         <div class="pledges">${R.pledges.map((p) => `<div class="pledge">${esc(p.text)}<div class="muted small">${p.groupIdx + 1}모둠 ${esc(p.nick)}</div></div>`).join('') || '<p class="muted">정리 단계에서 학생들이 쓰면 여기에 모여요.</p>'}</div>
       </div>
       <div class="two" style="margin-top:16px">
@@ -539,7 +539,7 @@
     $('t7').innerHTML = `<div class="card coral stack center" style="max-width:640px;margin:0 auto">
         <div class="mascot">${TD.turingi('party', 120)}</div>
         <h2>수업 종료 및 기록 삭제</h2>
-        <p>이 방의 모든 대화, 근거, 점수, 약속을 서버에서 지워요.<br/>지운 기록은 되살릴 수 없어요. 필요한 화면은 먼저 캡처해 두세요.</p>
+        <p>이 방의 모든 대화, 근거, 점수, 원칙을 서버에서 지워요.<br/>지운 기록은 되살릴 수 없어요. 필요한 화면은 먼저 캡처해 두세요.</p>
         <button class="btn coral big" id="closeRoom" type="button">🗑 수업 종료하고 기록 지우기</button>
       </div>`;
     $('closeRoom').onclick = () => {

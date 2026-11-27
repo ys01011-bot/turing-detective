@@ -176,7 +176,7 @@ io.on('connection', (socket) => {
     const c = ctx(socket);
     if (!c) return reply(cb, { ok: false });
     const t = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 100);
-    if (t.length < 2) return reply(cb, { ok: false, msg: '약속을 한 줄 써 주세요.' });
+    if (t.length < 2) return reply(cb, { ok: false, msg: '원칙을 한 줄 써 주세요.' });
     const { findBanned } = require('./pipeline');
     if (findBanned(t).length) return reply(cb, { ok: false, msg: '다시 써 주세요.' });
     c.p.pledge = t;

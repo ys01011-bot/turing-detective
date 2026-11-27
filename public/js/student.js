@@ -529,11 +529,11 @@
   }
   function sendPledge() {
     const text = $('pledgeInput').value.trim();
-    if (!text) return TD.toast('약속을 한 줄 써 주세요.', true);
+    if (!text) return TD.toast('원칙을 한 줄 써 주세요.', true);
     socket.emit('pledge', { text }, (r) => {
       if (!r || !r.ok) return TD.toast((r && r.msg) || '다시 써 주세요.', true);
       $('pledgeInput').value = '';
-      TD.toast('약속을 올렸어요!');
+      TD.toast('원칙을 올렸어요!');
     });
   }
   $('pledgeBtn').onclick = sendPledge;
