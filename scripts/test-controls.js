@@ -17,7 +17,7 @@ const check = (name, ok, extra = '') => {
   t.on('room-state', (r) => (R = r));
   await new Promise((r) => t.on('connect', r));
   await t.emitWithAck('teacher-auth', { pin: PIN });
-  const { code } = await t.emitWithAck('create-room', { groupCount: 1, settings: { turnSec: 20, voteSec: 60, rounds: 1, games: 1 } });
+  const { code } = await t.emitWithAck('create-room', { groupCount: 1, settings: { turnSec: 20, voteSec: 60, rounds: 1, games: 1, mafiaPick: 'app' } });
   // 학생 3명 (아무것도 보내지 않음)
   const kids = [];
   for (const nick of ['가람', '나래', '다온']) {
@@ -64,8 +64,8 @@ const check = (name, ok, extra = '') => {
     // 마피아가 키를 한 번 누르고 시간 초과 → AI 문장 전체 게시
     const mafia = kids.find((k) => k.id === g().turn.playerId);
     mafia.s.emit('typing', { pos: 1 });
-    console.log('     (턴 시간 초과를 기다리는 중 약 21초)');
-    await sleep(21500);
+    console.log('     (턴 시간 초과를 기다리는 중 약 24초)');
+    await sleep(24000); // 마감 20초 + 게시 지연 2초 + 여유
     const last = g().messages.at(-1);
     check('마피아 시간 초과(키 누름) → AI 문장 전체 게시', last && last.isAI && !last.pass, `"${last && last.text}"`);
   } else {

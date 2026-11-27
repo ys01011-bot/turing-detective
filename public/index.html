@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>튜링 탐정단</title>
+  <title>마음 탐정단</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet" />
@@ -18,7 +18,7 @@
       <div class="hero">
         <div class="mascot" id="joinMascot"></div>
         <div>
-          <h1>튜링 탐정단</h1>
+          <h1>마음 탐정단</h1>
           <p class="muted">우리 모둠 속 숨은 AI를 찾아라!</p>
         </div>
       </div>
@@ -78,9 +78,15 @@
     <!-- S3 역할 확인 -->
     <section id="s-role" class="screen hidden">
       <div class="center stack">
-        <h1><span id="roleGame"></span>판 — 내 역할은?</h1>
-        <p class="muted">카드를 누르면 3초 동안 보여요. 옆 친구가 보지 않게 조심!</p>
-        <div class="flip-wrap">
+        <h1><span id="roleGame"></span>판 — <span id="roleTitle">내 역할은?</span></h1>
+        <div id="touchPanel" class="card lemon stack hidden">
+          <div class="touch-emoji" aria-hidden="true">🙈</div>
+          <p class="title">모두 엎드려 눈을 감아요.</p>
+          <p>선생님이 어깨를 살짝 터치한 친구가 이번 판의 <b>AI 마피아</b>예요.<br/>터치를 받아도 아무 표시 없이 그대로 엎드려 있어요.</p>
+          <p class="muted small">AI 마피아는 자기 차례에 아무 키나 누르면 AI가 쓴 문장이 써져요.<br/>선생님이 "고개 들어요" 하면 대화가 시작돼요.</p>
+        </div>
+        <p class="muted" id="roleHint">카드를 누르면 3초 동안 보여요. 옆 친구가 보지 않게 조심!</p>
+        <div class="flip-wrap" id="roleWrap">
           <button id="roleCard" class="flip" type="button" aria-label="눌러서 내 역할 보기">
             <div class="flip-inner">
               <div class="flip-front">

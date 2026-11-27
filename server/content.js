@@ -28,6 +28,7 @@ const spelling = () => load('spelling-rules.json');
 const banned = () => load('banned-words.json');
 const prompts = () => load('prompts.json');
 const classQuestions = () => load('class-questions.json');
+const flaws = () => load('flaws.json');
 
 function getSet(id) {
   const all = topicSets().sets;
@@ -46,4 +47,31 @@ function getRound(gameCfg, round) {
   return { ...base, question: customQ || set.question || base.question, guide: round >= 2 ? base.guide || '' : '' };
 }
 
-module.exports = { topicSets, spelling, banned, prompts, classQuestions, getSet, getRound };
+/**
+ * 한 판에서 모둠의 AI가 남길 허점을 정한다(지도서의 AI 한계, content/flaws.json).
+ * - 주제 세트의 후보 중 이 모둠이 앞 판에서 쓰지 않은 것을 무작위로 고른다.
+ * - Lv1(연습)은 모든 바퀴에, Lv2·Lv3은 무작위 한 바퀴에만 남긴다.
+ * @returns {{id:string, laps:number[]}}
+ */
+function planFlaw(gameCfg, level, rounds, used = []) {
+  const set = getSet(gameCfg.setId);
+  const all = Object.keys(flaws().flaws);
+  let pool = (set.flaws || all).filter((k) => all.includes(k));
+  if (!pool.length) pool = all;
+  const fresh = pool.filter((k) => !used.includes(k));
+  const cand = fresh.length ? fresh : pool;
+  const id = cand[Math.floor(Math.random() * cand.length)];
+  const n = Math.max(1, rounds);
+  const laps = level === 'Lv1' ? Array.from({ length: n }, (_, i) => i + 1) : [1 + Math.floor(Math.random() * n)];
+  return { id, laps };
+}
+
+/** 이번 바퀴의 허점 지시. 허점 바퀴가 아니면 natural 지시와 flaw=null */
+function flawDirective(plan, round, level) {
+  const F = flaws();
+  const f = plan && plan.laps.includes(round) ? F.flaws[plan.id] : null;
+  if (!f) return { flaw: null, directive: F.natural };
+  return { flaw: plan.id, directive: f.directive[level] || f.directive.Lv2 };
+}
+
+module.exports = { topicSets, spelling, banned, prompts, classQuestions, flaws, getSet, getRound, planFlaw, flawDirective };

@@ -2,7 +2,7 @@
   "name": "turing-detective",
   "version": "0.1.0",
   "private": true,
-  "description": "튜링 탐정단: 우리 모둠 속 숨은 AI를 찾아라 — 초등 도덕 AI 마피아 채팅 놀이",
+  "description": "마음 탐정단: 우리 모둠에 숨은 AI를 찾아라 — 초등 도덕 AI 마피아 채팅 놀이",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",

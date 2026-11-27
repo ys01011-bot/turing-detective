@@ -232,8 +232,13 @@
     show('s-role');
     $('roleGame').textContent = S.group.game;
     if (first) $('roleCard').classList.remove('open');
-    $('ackBtn').classList.toggle('hidden', S.me.acked);
-    $('ackWait').classList.toggle('hidden', !S.me.acked);
+    // 터치 지정: 화면은 누구에게나 똑같이 '엎드리기' 안내만 보인다(역할 카드 없음)
+    const touch = S.room.mafiaPick === 'touch';
+    $('touchPanel').classList.toggle('hidden', !touch);
+    $('roleTitle').textContent = touch ? '엎드려요' : '내 역할은?';
+    ['roleHint', 'roleWrap'].forEach((id) => $(id).classList.toggle('hidden', touch));
+    $('ackBtn').classList.toggle('hidden', touch || S.me.acked);
+    $('ackWait').classList.toggle('hidden', touch || !S.me.acked);
   }
   $('roleCard').onclick = () => {
     if (!S || !S.me.role) return;

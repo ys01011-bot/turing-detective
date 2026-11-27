@@ -107,7 +107,7 @@ function exampleText(ex, group, room) {
   return ex.replace(/\{친구\}이?\s?/g, n ? `${n} ` : '');
 }
 
-function buildPrompt(room, group, mafia, roundInfo, level, profile) {
+function buildPrompt(room, group, mafia, roundInfo, level, profile, directive) {
   const P = content.prompts();
   const examples = roundInfo.examples.map((e) => '- ' + exampleText(e, group, room)).join('\n');
   const system = fill(P.mafiaSystem, {
@@ -115,7 +115,7 @@ function buildPrompt(room, group, mafia, roundInfo, level, profile) {
     game: group.game,
     round: group.round,
     question: roundInfo.question,
-    clueDirective: roundInfo.clueDirective[level] || roundInfo.clueDirective.Lv2,
+    clueDirective: directive,
     examples,
     profile: profile.text,
   });
@@ -202,7 +202,7 @@ async function callWithRetry(room, prompt, roundInfo) {
 
 /**
  * 마피아 메시지 하나를 만든다. 결과 문장은 이미 7장 보정을 거친 상태이다.
- * @returns {Promise<{text, latencyMs, source:'ai'|'backup', note?:string, alert?:string}>}
+ * @returns {Promise<{text, latencyMs, source:'ai'|'backup', flaw?:string|null, note?:string, alert?:string}>}
  */
 async function generateMafiaMessage(room, group, mafia, opts = {}) {
   const t0 = Date.now();
@@ -215,8 +215,13 @@ async function generateMafiaMessage(room, group, mafia, opts = {}) {
     return { text: r.ok ? r.text : text, latencyMs: Date.now() - t0, source: 'backup', note, alert };
   };
   if (opts.forceBackup) return backup('teacher');
-  const prompt = buildPrompt(room, group, mafia, roundInfo, level, profile);
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // 지도서의 AI 한계 중 이번 판에 정한 허점을, 정해진 바퀴에만 옅게 남긴다(content/flaws.json)
+  const { flaw, directive } = content.flawDirective(group.flaw, group.round, level);
+  const prompt = buildPrompt(room, group, mafia, roundInfo, level, profile, directive);
+  // 미리 저장된 백업 문장은 '사람 같지 않음'의 가장 큰 원인이다. 점검에 걸리면 이유를 알려 주고 다시 쓰게 하고,
+  // 백업은 API 오류이거나 세 번 모두 걸렸을 때만 쓴다.
+  const reasons = [];
+  for (let attempt = 0; attempt < 3; attempt++) {
     let out;
     try {
       out = await callWithRetry(room, prompt, roundInfo);
@@ -227,13 +232,31 @@ async function generateMafiaMessage(room, group, mafia, opts = {}) {
     if (findBanned(text).length) {
       return backup('banned', `AI 문장에 금칙어가 있어 백업 메시지로 바꿨어요 (${mafia.nick})`);
     }
-    if (!postCheck(text, profile, group, roundInfo)) {
+    const why = postCheck(text, profile, group, roundInfo);
+    if (!why) {
       const r = await processMessage(room, text);
-      if (r.ok) return { text: r.text, latencyMs: Date.now() - t0, source: 'ai' };
+      if (r.ok) return { text: r.text, latencyMs: Date.now() - t0, source: 'ai', flaw, note: reasons.length ? `retry:${reasons.join(',')}` : undefined };
       return backup('pipeline');
     }
+    reasons.push(why);
+    prompt.system += `
+
+[다시 쓰기] 방금 쓴 문장("${text.slice(0, 80)}")은 쓸 수 없다: ${retryHint(why, profile)} 같은 뜻이라도 새로 써라.`;
   }
-  return backup('postcheck');
+  return backup(`postcheck:${reasons.join(',')}`);
+}
+
+function retryHint(why, profile) {
+  const [lo, hi] = profile.range;
+  return (
+    {
+      length: `길이를 ${Math.max(4, lo)}~${hi}자 사이로 맞춰라.`,
+      broken: '문장 끝이 어색하게 끊겼다. 자연스럽게 끝맺어라.',
+      'ai-word': 'AI·로봇·컴퓨터 같은 말은 쓰지 마라.',
+      copy: '친구 말이나 예시를 10자 넘게 그대로 따오지 말고, 친구 이름을 부르며 네 말로 바꿔 써라.',
+      empty: '빈 문장이다. 메시지 본문을 써라.',
+    }[why] || '점검에 걸렸다.'
+  );
 }
 
 module.exports = { generateMafiaMessage, computeProfile, buildPrompt, postCheck, applyProfile };

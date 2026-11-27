@@ -23,18 +23,22 @@
     RESULT: ['결과', 'apricot'],
     CLOSING: ['정리', 'sky'],
   };
+  // 근거 보드 칸 = AI의 의도적 허점(지도서의 AI 한계, content/flaws.json) + 겉모습·기타
   const LABELS = [
-    ['experience', '② 경험', '🧭'],
-    ['emotion', '③ 감정', '💗'],
-    ['responsibility', '④ 책임·행동', '🤝'],
+    ['experience', '겪은 일', '🧭'],
+    ['emotion', '마음', '💗'],
+    ['agree', '맞춰 주기', '🪞'],
+    ['pattern', '정해진 답', '📋'],
     ['surface', '겉모습·기타', '🔤'],
     ['unclassified', '미분류', '❔'],
   ];
-  const CLUES = [
-    ['experience', '② 경험'],
-    ['emotion', '③ 감정'],
-    ['responsibility', '④ 책임'],
-  ];
+  const flawName = (k) => {
+    const f = (R && R.flawInfo && R.flawInfo[k]) || null;
+    if (f) return `${f.icon} ${f.name}`;
+    const l = LABELS.find(([x]) => x === k);
+    return l ? `${l[2]} ${l[1]}` : k;
+  };
+  const flawPlanText = (fl) => (fl ? `${flawName(fl.id)} · ${fl.laps.join('·')}바퀴` : '없음');
 
   const ss = {
     get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
@@ -180,6 +184,8 @@
           ${numField('fVote', '투표 시간 (60~180초)', S.voteSec ?? 90, 60, 180)}
           ${numField('fLen', '메시지 최대 길이 (40~150자)', S.maxLen ?? 80, 40, 150)}
           <div class="full row">
+            <label>마피아 정하기</label>
+            <select id="fPick"><option value="touch" ${S.mafiaPick !== 'app' ? 'selected' : ''}>교사 터치 (모두 엎드리고 교사가 어깨 터치)</option><option value="app" ${S.mafiaPick === 'app' ? 'selected' : ''}>화면 역할 카드</option></select>
             <label class="switch"><input type="checkbox" id="fSpell" ${S.spellAI !== false ? 'checked' : ''}/> 맞춤법 자동 보정 (AI 보정)</label>
             <label class="switch muted"><input type="checkbox" id="fChance" ${S.questionChance ? 'checked' : ''}/> 질문 찬스 (선택 기능 · 아직 동작 안 함)</label>
           </div>
@@ -197,7 +203,7 @@
         .map((i) => {
           const c = cfg[i] || {};
           const lv = (S.levels || ['Lv2', 'Lv3', 'Lv3'])[i];
-          const def = i === 0 ? 'care' : i === 1 ? 'empathy' : 'care';
+          const def = (setsList[[0, 1, 4][i]] || setsList[0]).id; // 기본: 밸런스 게임 → 흑역사 → 냄새 기억
           const setId = c.setId || def;
           return `<div class="card ${['mint', 'lilac', 'apricot'][i]} stack" data-game="${i}">
             <h3>${i + 1}판</h3>
@@ -208,13 +214,14 @@
             ${(() => {
               const set = setsList.find((s) => s.id === setId) || setsList[0];
               const cu = (c.custom && c.custom.find((x) => x && x.question)) || {};
-              const clues = set.rounds.map((r, i) => `${i + 1}바퀴 ${(CLUES.find(([k]) => k === r.clue) || ['', r.clue])[1]}`).join(' · ');
+              const clues = (set.flaws || []).map(flawName).join(' · ');
               return `<label>이 판의 질문 <span class="muted small">(바퀴마다 같은 질문을 이어서 이야기해요)</span></label>
                 <div class="small"><b>${esc(set.question || '')}</b></div>
-                <div class="muted small">AI 단서: ${esc(clues)}</div>
+                ${set.identity ? `<div class="muted small">드러나는 정체성: ${esc(set.identity)}</div>` : ''}
+                <div class="muted small">AI 허점 후보: ${esc(clues)}<br/>모둠마다 하나를 골라, Lv1은 두 바퀴 모두 뚜렷하게, Lv2·Lv3은 한 바퀴에만 옅게 남겨요.</div>
                 <details ${cu.question ? 'open' : ''}><summary class="title">질문 직접 입력 (선택)</summary>
                   <input class="grow cfg-q" type="text" maxlength="80" style="margin-top:8px" placeholder="${esc(set.question || '')}" value="${esc(cu.question || '')}" />
-                  <p class="muted small">비워 두면 주제 세트의 질문을 써요. 직접 입력해도 AI 단서·백업 메시지는 이 주제 세트의 것을 써요.</p>
+                  <p class="muted small">비워 두면 주제 세트의 질문을 써요. 직접 입력해도 AI 허점·백업 메시지는 이 주제 세트의 것을 써요.</p>
                 </details>`;
             })()}
           </div>`;
@@ -230,7 +237,7 @@
       fetch('/content/sets')
         .then((r) => r.json())
         .then(paint)
-        .catch(() => paint([{ id: 'care', title: '배려', question: '', rounds: [{ clue: 'experience' }] }, { id: 'empathy', title: '공감', question: '', rounds: [{ clue: 'emotion' }] }]));
+        .catch(() => paint([{ id: 'balance', title: '밸런스 게임', question: '', flaws: ['agree', 'pattern', 'experience'], rounds: [{}] }]));
     $('saveRoom').onclick = saveRoom;
     if ($('cancelEdit')) $('cancelEdit').onclick = () => {
       showForm = false;
@@ -251,6 +258,7 @@
       voteSec: +$('fVote').value,
       maxLen: +$('fLen').value,
       spellAI: $('fSpell').checked,
+      mafiaPick: $('fPick').value,
       questionChance: $('fChance').checked,
       levels: [...document.querySelectorAll('.cfg-lv')].map((s) => s.value),
     };
@@ -329,6 +337,7 @@
         <span class="pill gray">AI 호출 ${R.aiCalls} / ${R.settings.aiCallLimit}</span>
         <button class="btn apricot" data-pause-all="${anyPaused ? 0 : 1}" type="button">${anyPaused ? '▶ 전체 다시 시작' : '⏸ 전체 일시정지'}</button>
         ${R.groups.some((g) => g.state === 'RESULT' && g.game < R.settings.games) ? '<button class="btn lilac" data-start="all" type="button">▶ 전체 다음 판</button>' : ''}
+        ${R.settings.mafiaPick === 'touch' && R.groups.filter((g) => g.state === 'ROLE_REVEAL').length > 1 ? '<button class="btn mint" data-begin="all" type="button">🙆 모든 모둠 고개 들기</button>' : ''}
       </div>
       <div class="groups">${R.groups.map(groupMonitor).join('')}</div>`;
     el.querySelectorAll('.g-log').forEach((l) => {
@@ -337,6 +346,8 @@
     });
     bindCommon(el);
     el.querySelector('[data-pause-all]').onclick = (e) => act('pause', { groupIdx: 'all', paused: e.target.dataset.pauseAll === '1' });
+    el.querySelectorAll('[data-setmafia]').forEach((s) => (s.onchange = () => act('set-mafia', { groupIdx: +s.dataset.setmafia, playerId: s.value }, '터치할 학생을 바꿨어요.')));
+    el.querySelectorAll('[data-begin]').forEach((b) => (b.onclick = () => act('begin-chat', { groupIdx: b.dataset.begin === 'all' ? 'all' : +b.dataset.begin }, '대화를 시작했어요.')));
     el.querySelectorAll('[data-act]').forEach((b) => (b.onclick = () => {
       const g = +b.dataset.g;
       const a = b.dataset.act;
@@ -358,7 +369,13 @@
       turnBox = `<div class="turn-box"><b>${esc(t.nick)}</b> 차례 (${t.idx + 1}/${t.of})${t.isMafia ? ' <span class="ai-chip">마피아</span>' : ''}${t.sending ? ' · 보내는 중' : ''}${ai}</div>`;
     }
     if (g.state === 'VOTING') turnBox = `<div class="turn-box">🗳 투표 ${g.votes}/${g.members.length}명 완료</div>`;
-    if (g.state === 'ROLE_REVEAL') turnBox = `<div class="turn-box">🃏 역할 확인 ${g.acks}/${g.members.length}명</div>`;
+    if (g.state === 'ROLE_REVEAL')
+      turnBox =
+        R.settings.mafiaPick === 'touch'
+          ? `<div class="turn-box stack">🙈 모두 엎드려 있어요. <b>👆 터치할 학생</b>
+              <div class="row"><select data-setmafia="${g.idx}" aria-label="터치할 학생">${g.members.map((m) => `<option value="${m.id}" ${m.id === g.mafiaId ? 'selected' : ''}>${esc(m.nick)}${m.wasMafia && m.id !== g.mafiaId ? ' (이전 판 마피아)' : ''}</option>`).join('')}</select>
+              <button class="btn mint small" data-begin="${g.idx}" type="button">🙆 고개 들기 · 대화 시작</button></div></div>`
+          : `<div class="turn-box">🃏 역할 확인 ${g.acks}/${g.members.length}명</div>`;
     if (g.state === 'RESULT') {
       const r = g.results[g.game - 1];
       turnBox = r ? `<div class="turn-box">${r.caught ? '<span class="verdict-ok">🎉 검거 성공</span>' : '<span class="verdict-no">🤫 검거 실패</span>'} · 득표 ${r.tally.filter((x) => x.count).map((x) => `${esc(x.nick)} ${x.count}`).join(', ')}${r.lookalike ? ` · 로봇 닮은꼴: ${esc(r.lookalike)}` : ''}</div>` : '';
@@ -366,7 +383,7 @@
     const busy = ['PLAYING', 'VOTING', 'ROLE_REVEAL'].includes(g.state);
     return `<div class="card gcard ${['mint', 'sky', 'lilac', 'apricot'][g.idx]}">
       <div class="g-title"><h2>${g.idx + 1}모둠</h2>${statePill(g)}<span class="grow"></span>${rem !== null ? `<span class="big-timer">⏱ ${Math.ceil(rem / 1000)}초</span>` : ''}</div>
-      ${g.mafiaNick ? `<div><span class="mafia-tag">🤖 마피아: ${esc(g.mafiaNick)}</span> <span class="muted small">(교사에게만 보여요)</span></div>` : ''}
+      ${g.mafiaNick ? `<div><span class="mafia-tag">🤖 마피아: ${esc(g.mafiaNick)}</span> <span class="pill gray small">허점: ${esc(flawPlanText(g.flaw))}</span> <span class="muted small">(교사에게만 보여요)</span></div>` : ''}
       ${g.question ? `<div class="small muted">질문: <b>${esc(g.question)}</b></div>` : ''}
       ${turnBox}
       <div class="g-log" data-g="${g.idx}">${
@@ -527,7 +544,7 @@
       </div>
       <div class="two" style="margin-top:16px">
         <div class="card apricot stack"><h2>🏅 명탐정 근거상</h2>${best.map((e) => `<div class="pledge">${esc(e.reason)}<div class="muted small">${e.groupIdx + 1}모둠 ${esc(e.voterNick)}</div></div>`).join('') || '<p class="muted">근거 보드에서 근거를 눌러 골라 주세요.</p>'}</div>
-        <div class="card lilac stack"><h2>🤖 AI가 쓴 메시지 모음</h2><div class="stack">${aiMsgs.map((m) => `<div class="pledge" style="border-color:var(--lilac)">${esc(m.text)}<div class="muted small">${m.gi + 1}모둠 ${m.game}판 ${m.round}바퀴 · ${esc(m.nick)}인 척</div></div>`).join('') || '<p class="muted">아직 없어요.</p>'}</div></div>
+        <div class="card lilac stack"><h2>🤖 AI가 쓴 메시지 모음</h2><div class="stack">${aiMsgs.map((m) => `<div class="pledge" style="border-color:var(--lilac)">${esc(m.text)}<div class="muted small">${m.gi + 1}모둠 ${m.game}판 ${m.round}바퀴 · ${esc(m.nick)}인 척 · ${m.flaw ? '허점: ' + esc(flawName(m.flaw)) : m.source === 'backup' ? '백업 문장' : '허점 없음'}</div></div>`).join('') || '<p class="muted">아직 없어요.</p>'}</div></div>
       </div>`;
     if ($('startClosing')) $('startClosing').onclick = () => confirm('모든 모둠을 정리 단계로 넘길까요? (진행 중인 판은 멈춰요)') && act('closing', {}, '정리 단계를 시작했어요.');
   }

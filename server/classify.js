@@ -2,7 +2,7 @@
 const content = require('./content');
 const ai = require('./ai');
 
-const LABELS = ['experience', 'emotion', 'responsibility', 'surface'];
+const LABELS = ['experience', 'emotion', 'agree', 'pattern', 'surface'];
 
 async function classifyRoom(room) {
   const items = room.evidence.filter((e) => !e.label || e.label === 'unclassified'); // 실패했던 것도 다시

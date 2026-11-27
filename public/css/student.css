@@ -96,3 +96,7 @@
   color: var(--ink, #3b3a5a);
   font-size: 0.9rem;
 }
+
+/* 터치 지정: 엎드리기 안내 */
+#touchPanel { max-width: 520px; margin: 0 auto; text-align: center; }
+.touch-emoji { font-size: 64px; line-height: 1; }

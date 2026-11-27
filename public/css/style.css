@@ -1,4 +1,4 @@
-/* 튜링 탐정단 — 공통 스타일 (명세 4.1: 둥글둥글·파스텔·통통) */
+/* 마음 탐정단 — 공통 스타일 (명세 4.1: 둥글둥글·파스텔·통통) */
 :root {
   --mint: #bdf0dd;
   --mint-d: #3fae8a;
@@ -65,6 +65,7 @@ p { margin: 0.3em 0; }
 .card.lilac { background: #f6f2ff; border-color: var(--lilac); }
 .card.apricot { background: #fff6ee; border-color: var(--apricot); }
 .card.coral { background: #fff2f1; border-color: var(--coral); }
+.card.lemon { background: #fffbea; border-color: var(--lemon); }
 
 /* 버튼: 알약 모양 */
 .btn {

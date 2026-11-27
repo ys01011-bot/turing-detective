@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS = {
   spellAI: true, // 맞춤법 AI 보정
   postDelayMs: 2000, // 7.4 지연 통일 (AI 보정 제한 1.9초보다 길게)
   roleRevealSec: 20,
+  mafiaPick: 'touch', // touch: 모두 엎드리고 교사가 어깨를 터치해 지정(교사 화면에 터치할 학생 표시) | app: 화면 역할 카드
   aiCallLimit: 300,
   absentPassSec: 30, // 30초 넘게 미접속이면 턴 자동 패스
 };
@@ -42,6 +43,7 @@ function sanitizeSettings(s = {}) {
     levels: [lv(levels[0], 'Lv2'), lv(levels[1], 'Lv3'), lv(levels[2], 'Lv3')],
     questionChance: !!s.questionChance,
     spellAI: s.spellAI === undefined ? d.spellAI : !!s.spellAI,
+    mafiaPick: s.mafiaPick === 'app' ? 'app' : 'touch',
   };
 }
 
@@ -196,6 +198,7 @@ function studentState(room, p) {
       voteSec: room.settings.voteSec,
       games: room.settings.games,
       rounds: room.settings.rounds,
+      mafiaPick: room.settings.mafiaPick,
       notice: Q.notice,
       poll: Q.poll,
       greetingPrompt: Q.greetingPrompt,
@@ -269,7 +272,9 @@ function studentResult(room, g, r, p) {
 /** 교사 화면 전체 상태 (마피아 포함) */
 function teacherState(room) {
   const Q = content.classQuestions();
-  const sets = content.topicSets().sets.map((s) => ({ id: s.id, title: s.title, question: s.question, rounds: s.rounds.map((r) => ({ clue: r.clue })) }));
+  const sets = content.topicSets().sets.map((s) => ({ id: s.id, title: s.title, question: s.question, identity: s.identity || '', flaws: s.flaws || [], rounds: s.rounds.map(() => ({})) }));
+  const F = content.flaws().flaws;
+  const flawInfo = Object.fromEntries(Object.entries(F).map(([k, f]) => [k, { name: f.name, board: f.board, icon: f.icon, question: f.question, source: f.source }]));
   const players = [...room.players.values()];
   const pollCount = (key) => {
     const c = Q.poll.options.map(() => 0);
@@ -283,6 +288,7 @@ function teacherState(room) {
     settings: room.settings,
     gameCfg: room.gameCfg,
     sets,
+    flawInfo,
     aiCalls: room.aiCalls,
     expiresAt: room.expiresAt,
     poll: { question: Q.poll.question, options: Q.poll.options, pre: pollCount('prePoll'), post: pollCount('postPoll') },
@@ -302,6 +308,7 @@ function teacherState(room) {
         remainingMs: remainingMs(g),
         mafiaId: g.mafiaId,
         mafiaNick: g.mafiaId ? room.players.get(g.mafiaId)?.nick : null,
+        flaw: g.flaw || null,
         acks: g.acks.size,
         members: g.playerIds.map((id) => {
           const m = room.players.get(id);
@@ -322,7 +329,7 @@ function teacherState(room) {
               sending: g.turn.sending,
             }
           : null,
-        messages: g.messages.map((m) => ({ id: m.id, game: m.game, round: m.round, nick: m.nick, text: m.text, isAI: m.isAI, pass: m.pass, source: m.source, original: m.original })),
+        messages: g.messages.map((m) => ({ id: m.id, game: m.game, round: m.round, nick: m.nick, text: m.text, isAI: m.isAI, pass: m.pass, source: m.source, original: m.original, flaw: m.flaw || null })),
         votes: g.state === 'VOTING' ? g.votes.size : null,
         results: g.results,
       };

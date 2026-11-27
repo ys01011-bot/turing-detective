@@ -124,6 +124,20 @@ async function main() {
   for (let game = 1; game <= GAMES; game++) {
     const r = await t.emitWithAck('start-game', { code, groupIdx: 'all' });
     log(`${game}판 시작`, r.ok ? '' : r.msg);
+    // 터치 지정(기본): 교사가 1모둠 터치 학생을 한 번 바꿔 보고, 모두 '고개 들기'
+    const R = room;
+    if (R && R.settings.mafiaPick === 'touch') {
+      await sleep(800);
+      const g0 = room.groups[0];
+      const other = g0.members.find((m) => m.id !== g0.mafiaId && !m.wasMafia);
+      if (other) {
+        const sm = await t.emitWithAck('set-mafia', { code, groupIdx: 0, playerId: other.id });
+        await sleep(300);
+        log('터치 학생 바꾸기', sm.ok && room.groups[0].mafiaId === other.id ? '통과' : '실패 ' + JSON.stringify(sm));
+      }
+      const b = await t.emitWithAck('begin-chat', { code, groupIdx: 'all' });
+      log('고개 들기', b.ok ? '통과' : '실패 ' + b.msg);
+    }
     // 재접속 시험: 1모둠 3번째 봇이 2초 끊겼다가 돌아온다
     if (game === 1) {
       setTimeout(() => {

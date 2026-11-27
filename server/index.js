@@ -1,4 +1,4 @@
-// 튜링 탐정단 서버 진입점: Express(정적 파일) + Socket.IO(실시간)
+// 마음 탐정단 서버 진입점: Express(정적 파일) + Socket.IO(실시간)
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const path = require('path');
 const os = require('os');
@@ -41,7 +41,7 @@ app.get('/api/room/:code', (req, res) => {
 
 // 주제 세트 목록 (교사 T1 방 만들기용, 질문만)
 app.get('/content/sets', (req, res) => {
-  res.json(require('./content').topicSets().sets.map((s) => ({ id: s.id, title: s.title, question: s.question, rounds: s.rounds.map((r) => ({ clue: r.clue })) })));
+  res.json(require('./content').topicSets().sets.map((s) => ({ id: s.id, title: s.title, question: s.question, identity: s.identity || '', flaws: s.flaws || [], rounds: s.rounds.map(() => ({})) })));
 });
 
 // 방 코드 QR (SVG)
@@ -334,6 +334,18 @@ io.on('connection', (socket) => {
     )
   );
 
+  // 터치 지정: 터치할 학생 바꾸기, '고개 들기'(대화 시작)
+  socket.on('set-mafia', T(needRoom((room, data) => G.setMafia(room, room.groups[data.groupIdx], data.playerId))));
+  socket.on(
+    'begin-chat',
+    T(
+      needRoom((room, data) => {
+        let n = 0;
+        for (const g of groupsOf(room, data)) if (g.state === 'ROLE_REVEAL' && G.beginChat(room, g).ok) n++;
+        return n ? { ok: true } : { ok: false, msg: '엎드려 있는 모둠이 없어요.' };
+      })
+    )
+  );
   socket.on('redo-turn', T(needRoom((room, data) => G.redoTurn(room, room.groups[data.groupIdx]))));
   socket.on('skip-turn', T(needRoom((room, data) => G.skipTurn(room, room.groups[data.groupIdx]))));
   socket.on('force-backup', T(needRoom((room, data) => G.forceBackup(room, room.groups[data.groupIdx]))));
@@ -438,7 +450,7 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`튜링 탐정단 서버가 켜졌어요 (AI: ${ai.providerName})`);
+  console.log(`마음 탐정단 서버가 켜졌어요 (AI: ${ai.providerName})`);
   console.log(`  학생 화면: http://localhost:${PORT}/`);
   console.log(`  교사 화면: http://localhost:${PORT}/teacher`);
 });
